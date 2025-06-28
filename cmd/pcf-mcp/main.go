@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/analyst/pcf-mcp/internal/config"
 	"github.com/analyst/pcf-mcp/internal/mcp"
@@ -81,6 +82,21 @@ func main() {
 		}()
 	}
 	
+	// Initialize tracing
+	var tracingShutdown func(context.Context) error
+	if cfg.Tracing.Enabled {
+		tracingShutdown, err = observability.InitTracing(cfg.Tracing)
+		if err != nil {
+			logger.Error("Failed to initialize tracing", "error", err)
+			os.Exit(1)
+		}
+		logger.Info("Tracing initialized",
+			"exporter", cfg.Tracing.Exporter,
+			"endpoint", cfg.Tracing.Endpoint,
+			"sampling_rate", cfg.Tracing.SamplingRate,
+		)
+	}
+	
 	// Create PCF client
 	pcfClient, err := pcf.NewClient(cfg.PCF)
 	if err != nil {
@@ -125,6 +141,15 @@ func main() {
 	if err := mcpServer.Start(ctx); err != nil && err != context.Canceled {
 		logger.Error("Server error", "error", err)
 		os.Exit(1)
+	}
+	
+	// Cleanup tracing if enabled
+	if tracingShutdown != nil {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := tracingShutdown(shutdownCtx); err != nil {
+			logger.Error("Failed to shutdown tracing", "error", err)
+		}
 	}
 	
 	logger.Info("PCF-MCP Server stopped")
