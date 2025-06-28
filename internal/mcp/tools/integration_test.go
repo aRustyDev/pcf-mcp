@@ -15,6 +15,8 @@ type MockFullPCFClient struct {
 	CreateProjectFunc func(ctx context.Context, req pcf.CreateProjectRequest) (*pcf.Project, error)
 	ListHostsFunc     func(ctx context.Context, projectID string) ([]pcf.Host, error)
 	AddHostFunc       func(ctx context.Context, projectID string, req pcf.CreateHostRequest) (*pcf.Host, error)
+	ListIssuesFunc    func(ctx context.Context, projectID string) ([]pcf.Issue, error)
+	CreateIssueFunc   func(ctx context.Context, projectID string, req pcf.CreateIssueRequest) (*pcf.Issue, error)
 }
 
 func (m *MockFullPCFClient) ListProjects(ctx context.Context) ([]pcf.Project, error) {
@@ -41,6 +43,20 @@ func (m *MockFullPCFClient) ListHosts(ctx context.Context, projectID string) ([]
 func (m *MockFullPCFClient) AddHost(ctx context.Context, projectID string, req pcf.CreateHostRequest) (*pcf.Host, error) {
 	if m.AddHostFunc != nil {
 		return m.AddHostFunc(ctx, projectID, req)
+	}
+	return nil, nil
+}
+
+func (m *MockFullPCFClient) ListIssues(ctx context.Context, projectID string) ([]pcf.Issue, error) {
+	if m.ListIssuesFunc != nil {
+		return m.ListIssuesFunc(ctx, projectID)
+	}
+	return nil, nil
+}
+
+func (m *MockFullPCFClient) CreateIssue(ctx context.Context, projectID string, req pcf.CreateIssueRequest) (*pcf.Issue, error) {
+	if m.CreateIssueFunc != nil {
+		return m.CreateIssueFunc(ctx, projectID, req)
 	}
 	return nil, nil
 }
