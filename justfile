@@ -76,7 +76,15 @@ docs:
 
 # Run integration tests
 test-integration:
-    go test -v -tags=integration ./tests/...
+    INTEGRATION_TESTS=true go test -v -tags=integration ./tests/...
+
+# Run stress tests
+test-stress:
+    STRESS_TEST=true go test -v -tags=integration -run TestStressTest ./tests/...
+
+# Run end-to-end tests
+test-e2e:
+    INTEGRATION_TESTS=true go test -v -tags=integration -run TestEndToEnd ./tests/...
 
 # Check for dependency updates
 check-updates:

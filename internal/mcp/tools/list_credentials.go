@@ -82,7 +82,7 @@ func createListCredentialsHandler(client ListCredentialsClient) mcp.ToolHandler 
 		}
 		
 		// Convert credentials to response format and apply filters
-		var credentialList []map[string]interface{}
+		credentialList := make([]map[string]interface{}, 0)
 		typeCount := make(map[string]int)
 		
 		for _, cred := range credentials {
