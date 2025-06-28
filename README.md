@@ -177,15 +177,22 @@ just docker
 just clean
 ```
 
+## Documentation
+
+- [API Reference](docs/api.md) - Complete API documentation and tool reference
+- [Architecture](docs/architecture.md) - System design and component architecture
+- [Configuration](docs/configuration.md) - All configuration options explained
+- [Deployment Guide](docs/deployment.md) - Docker, Kubernetes, and production deployment
+- [Troubleshooting](docs/troubleshooting.md) - Common issues and solutions
+
 ## Deployment
 
-### Kubernetes
-
-See [docs/kubernetes.md](docs/kubernetes.md) for detailed Kubernetes deployment instructions.
-
-### Docker Compose
-
-See [docs/docker-compose.md](docs/docker-compose.md) for Docker Compose setup.
+See the [Deployment Guide](docs/deployment.md) for detailed instructions on:
+- Local development setup
+- Docker deployment
+- Docker Compose configuration
+- Kubernetes deployment with examples
+- Production best practices
 
 ## Observability
 
