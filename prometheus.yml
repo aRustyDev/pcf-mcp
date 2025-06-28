@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Scrape PCF-MCP metrics
+  - job_name: 'pcf-mcp'
+    static_configs:
+      - targets: ['pcf-mcp:9090']
+        labels:
+          service: 'pcf-mcp'
+          
+  # Scrape Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

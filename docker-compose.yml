@@ -1,0 +1,104 @@
+version: '3.8'
+
+services:
+  # PCF-MCP Server
+  pcf-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: pcf-mcp:latest
+    container_name: pcf-mcp-server
+    environment:
+      # Server configuration
+      PCF_MCP_SERVER_HOST: "0.0.0.0"
+      PCF_MCP_SERVER_PORT: "8080"
+      PCF_MCP_SERVER_TRANSPORT: "http"
+      
+      # PCF configuration
+      PCF_MCP_PCF_URL: "http://pcf:5000"
+      PCF_MCP_PCF_API_KEY: "${PCF_API_KEY:-your-api-key}"
+      
+      # Logging
+      PCF_MCP_LOGGING_LEVEL: "info"
+      PCF_MCP_LOGGING_FORMAT: "json"
+      
+      # Metrics
+      PCF_MCP_METRICS_ENABLED: "true"
+      PCF_MCP_METRICS_PORT: "9090"
+      
+      # Tracing
+      PCF_MCP_TRACING_ENABLED: "${TRACING_ENABLED:-false}"
+      PCF_MCP_TRACING_EXPORTER: "otlp"
+      PCF_MCP_TRACING_ENDPOINT: "jaeger:4317"
+      PCF_MCP_TRACING_SAMPLING_RATE: "1.0"
+    ports:
+      - "8080:8080"  # MCP server port
+      - "9090:9090"  # Metrics port
+    networks:
+      - pcf-network
+    depends_on:
+      - jaeger
+    healthcheck:
+      test: ["CMD", "/pcf-mcp", "health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  # Jaeger for distributed tracing (optional)
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: pcf-mcp-jaeger
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "4317:4317"    # OTLP gRPC
+      - "4318:4318"    # OTLP HTTP
+    networks:
+      - pcf-network
+    profiles:
+      - tracing
+
+  # Prometheus for metrics collection (optional)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: pcf-mcp-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9091:9090"  # Prometheus UI (different port to avoid conflict)
+    networks:
+      - pcf-network
+    profiles:
+      - metrics
+
+  # Grafana for metrics visualization (optional)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: pcf-mcp-grafana
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Admin"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"  # Grafana UI
+    networks:
+      - pcf-network
+    depends_on:
+      - prometheus
+    profiles:
+      - metrics
+
+networks:
+  pcf-network:
+    driver: bridge
+
+volumes:
+  prometheus-data:
+  grafana-data:

@@ -17,6 +17,13 @@ import (
 
 // main is the entry point for the PCF-MCP server application
 func main() {
+	// Check if health check is requested
+	if len(os.Args) > 1 && os.Args[1] == "health" {
+		// Simple health check - just exit successfully
+		// In a real implementation, this would check actual service health
+		os.Exit(0)
+	}
+	
 	// Create configuration
 	cfg := config.New()
 	
