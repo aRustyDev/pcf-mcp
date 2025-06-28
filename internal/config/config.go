@@ -32,6 +32,14 @@ type ServerConfig struct {
 	ReadTimeout time.Duration `mapstructure:"read_timeout"`
 	// WriteTimeout is the maximum duration before timing out writes of the response
 	WriteTimeout time.Duration `mapstructure:"write_timeout"`
+	// MaxConcurrentTools limits concurrent tool executions
+	MaxConcurrentTools int `mapstructure:"max_concurrent_tools"`
+	// ToolTimeout is the maximum duration for tool execution
+	ToolTimeout time.Duration `mapstructure:"tool_timeout"`
+	// AuthRequired enables authentication for HTTP transport
+	AuthRequired bool `mapstructure:"auth_required"`
+	// AuthToken is the bearer token for authentication
+	AuthToken string `mapstructure:"auth_token"`
 }
 
 // PCFConfig contains Pentest Collaboration Framework client configuration
@@ -99,6 +107,10 @@ func setDefaults() {
 	viperInstance.SetDefault("server.transport", "stdio")
 	viperInstance.SetDefault("server.read_timeout", 30*time.Second)
 	viperInstance.SetDefault("server.write_timeout", 30*time.Second)
+	viperInstance.SetDefault("server.max_concurrent_tools", 10)
+	viperInstance.SetDefault("server.tool_timeout", 60*time.Second)
+	viperInstance.SetDefault("server.auth_required", false)
+	viperInstance.SetDefault("server.auth_token", "")
 
 	// PCF defaults
 	viperInstance.SetDefault("pcf.url", "http://localhost:5000")
@@ -190,6 +202,8 @@ func (c *Config) LoadFromCLI(args []string) error {
 	flags.String("server-host", "", "Server bind address")
 	flags.Int("server-port", 0, "Server listen port")
 	flags.String("server-transport", "", "MCP transport type (stdio or http)")
+	flags.Bool("server-auth-required", false, "Enable authentication for HTTP transport")
+	flags.String("server-auth-token", "", "Bearer token for authentication")
 	
 	// PCF flags
 	flags.String("pcf-url", "", "PCF base URL")
@@ -203,6 +217,8 @@ func (c *Config) LoadFromCLI(args []string) error {
 	viperInstance.BindPFlag("server.host", flags.Lookup("server-host"))
 	viperInstance.BindPFlag("server.port", flags.Lookup("server-port"))
 	viperInstance.BindPFlag("server.transport", flags.Lookup("server-transport"))
+	viperInstance.BindPFlag("server.auth_required", flags.Lookup("server-auth-required"))
+	viperInstance.BindPFlag("server.auth_token", flags.Lookup("server-auth-token"))
 	viperInstance.BindPFlag("pcf.url", flags.Lookup("pcf-url"))
 	viperInstance.BindPFlag("pcf.api_key", flags.Lookup("pcf-api-key"))
 	viperInstance.BindPFlag("logging.level", flags.Lookup("log-level"))

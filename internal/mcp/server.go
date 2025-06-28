@@ -213,11 +213,14 @@ func (s *Server) ExecuteTool(ctx context.Context, name string, params map[string
 
 // Start starts the MCP server
 func (s *Server) Start(ctx context.Context) error {
-	if s.config.Transport == "stdio" {
+	switch s.config.Transport {
+	case "stdio":
 		// Start stdio server
 		return server.ServeStdio(s.mcpServer)
+	case "http":
+		// Start HTTP server
+		return s.StartHTTP(ctx)
+	default:
+		return fmt.Errorf("unsupported transport: %s", s.config.Transport)
 	}
-	
-	// HTTP transport will be implemented later
-	return fmt.Errorf("HTTP transport not yet implemented")
 }

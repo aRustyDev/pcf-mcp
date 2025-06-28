@@ -27,9 +27,22 @@ fmt:
     go fmt ./...
     gofumpt -w .
 
-# Run the application
+# Run the application (stdio mode)
 run:
     go run cmd/pcf-mcp/main.go
+
+# Run the server in HTTP mode
+run-http:
+    go run cmd/pcf-mcp/main.go --server-transport http --server-port 8080
+
+# Run the server in HTTP mode with authentication
+run-http-auth:
+    #!/usr/bin/env bash
+    TOKEN=$(openssl rand -base64 32)
+    echo "Authentication token: Bearer $TOKEN"
+    echo ""
+    go run cmd/pcf-mcp/main.go --server-transport http --server-port 8080 \
+        --server-auth-required true --server-auth-token "$TOKEN"
 
 # Build Docker image
 docker:
