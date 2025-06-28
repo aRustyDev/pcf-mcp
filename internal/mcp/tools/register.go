@@ -14,7 +14,9 @@ type FullPCFClient interface {
 	AddHostClient
 	ListIssuesClient
 	CreateIssueClient
-	// Additional interfaces will be added here as we implement more tools
+	ListCredentialsClient
+	AddCredentialClient
+	GenerateReportClient
 }
 
 // RegisterAllTools registers all available PCF tools with the MCP server
@@ -27,10 +29,9 @@ func RegisterAllTools(server *mcp.Server, pcfClient FullPCFClient) error {
 		NewAddHostTool(pcfClient),
 		NewListIssuesTool(pcfClient),
 		NewCreateIssueTool(pcfClient),
-		// Future tools will be added here:
-		// NewListCredentialsTool(pcfClient),
-		// NewAddCredentialTool(pcfClient),
-		// NewGenerateReportTool(pcfClient),
+		NewListCredentialsTool(pcfClient),
+		NewAddCredentialTool(pcfClient),
+		NewGenerateReportTool(pcfClient),
 	}
 	
 	// Register each tool

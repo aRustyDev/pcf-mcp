@@ -11,12 +11,15 @@ import (
 
 // MockFullPCFClient implements all PCF client interfaces for testing
 type MockFullPCFClient struct {
-	ListProjectsFunc  func(ctx context.Context) ([]pcf.Project, error)
-	CreateProjectFunc func(ctx context.Context, req pcf.CreateProjectRequest) (*pcf.Project, error)
-	ListHostsFunc     func(ctx context.Context, projectID string) ([]pcf.Host, error)
-	AddHostFunc       func(ctx context.Context, projectID string, req pcf.CreateHostRequest) (*pcf.Host, error)
-	ListIssuesFunc    func(ctx context.Context, projectID string) ([]pcf.Issue, error)
-	CreateIssueFunc   func(ctx context.Context, projectID string, req pcf.CreateIssueRequest) (*pcf.Issue, error)
+	ListProjectsFunc     func(ctx context.Context) ([]pcf.Project, error)
+	CreateProjectFunc    func(ctx context.Context, req pcf.CreateProjectRequest) (*pcf.Project, error)
+	ListHostsFunc        func(ctx context.Context, projectID string) ([]pcf.Host, error)
+	AddHostFunc          func(ctx context.Context, projectID string, req pcf.CreateHostRequest) (*pcf.Host, error)
+	ListIssuesFunc       func(ctx context.Context, projectID string) ([]pcf.Issue, error)
+	CreateIssueFunc      func(ctx context.Context, projectID string, req pcf.CreateIssueRequest) (*pcf.Issue, error)
+	ListCredentialsFunc  func(ctx context.Context, projectID string) ([]pcf.Credential, error)
+	AddCredentialFunc    func(ctx context.Context, projectID string, req pcf.AddCredentialRequest) (*pcf.Credential, error)
+	GenerateReportFunc   func(ctx context.Context, projectID string, req pcf.GenerateReportRequest) (*pcf.Report, error)
 }
 
 func (m *MockFullPCFClient) ListProjects(ctx context.Context) ([]pcf.Project, error) {
@@ -57,6 +60,27 @@ func (m *MockFullPCFClient) ListIssues(ctx context.Context, projectID string) ([
 func (m *MockFullPCFClient) CreateIssue(ctx context.Context, projectID string, req pcf.CreateIssueRequest) (*pcf.Issue, error) {
 	if m.CreateIssueFunc != nil {
 		return m.CreateIssueFunc(ctx, projectID, req)
+	}
+	return nil, nil
+}
+
+func (m *MockFullPCFClient) ListCredentials(ctx context.Context, projectID string) ([]pcf.Credential, error) {
+	if m.ListCredentialsFunc != nil {
+		return m.ListCredentialsFunc(ctx, projectID)
+	}
+	return nil, nil
+}
+
+func (m *MockFullPCFClient) AddCredential(ctx context.Context, projectID string, req pcf.AddCredentialRequest) (*pcf.Credential, error) {
+	if m.AddCredentialFunc != nil {
+		return m.AddCredentialFunc(ctx, projectID, req)
+	}
+	return nil, nil
+}
+
+func (m *MockFullPCFClient) GenerateReport(ctx context.Context, projectID string, req pcf.GenerateReportRequest) (*pcf.Report, error) {
+	if m.GenerateReportFunc != nil {
+		return m.GenerateReportFunc(ctx, projectID, req)
 	}
 	return nil, nil
 }

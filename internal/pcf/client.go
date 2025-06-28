@@ -161,6 +161,36 @@ type CreateIssueRequest struct {
 	CVSS        float64 `json:"cvss,omitempty"`
 }
 
+// AddCredentialRequest represents a request to add a new credential
+type AddCredentialRequest struct {
+	HostID   string `json:"host_id,omitempty"`
+	Type     string `json:"type"`
+	Username string `json:"username"`
+	Value    string `json:"value"`
+	Service  string `json:"service,omitempty"`
+	Notes    string `json:"notes,omitempty"`
+}
+
+// GenerateReportRequest represents a request to generate a report
+type GenerateReportRequest struct {
+	Format       string   `json:"format"`
+	IncludeHosts bool     `json:"include_hosts"`
+	IncludeIssues bool    `json:"include_issues"`
+	IncludeCredentials bool `json:"include_credentials"`
+	Sections     []string `json:"sections,omitempty"`
+}
+
+// Report represents a generated report
+type Report struct {
+	ID        string    `json:"id"`
+	ProjectID string    `json:"project_id"`
+	Format    string    `json:"format"`
+	Status    string    `json:"status"`
+	URL       string    `json:"url,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
+	Size      int64     `json:"size,omitempty"`
+}
+
 // ErrorResponse represents an error response from PCF API
 type ErrorResponse struct {
 	Error   string `json:"error"`
@@ -263,6 +293,30 @@ func (c *Client) CreateIssue(ctx context.Context, projectID string, req CreateIs
 	path := fmt.Sprintf("/api/projects/%s/issues", projectID)
 	err := c.doRequest(ctx, "POST", path, req, &issue)
 	return &issue, err
+}
+
+// ListCredentials retrieves all credentials for a project
+func (c *Client) ListCredentials(ctx context.Context, projectID string) ([]Credential, error) {
+	var credentials []Credential
+	path := fmt.Sprintf("/api/projects/%s/credentials", projectID)
+	err := c.doRequest(ctx, "GET", path, nil, &credentials)
+	return credentials, err
+}
+
+// AddCredential adds a new credential to a project
+func (c *Client) AddCredential(ctx context.Context, projectID string, req AddCredentialRequest) (*Credential, error) {
+	var credential Credential
+	path := fmt.Sprintf("/api/projects/%s/credentials", projectID)
+	err := c.doRequest(ctx, "POST", path, req, &credential)
+	return &credential, err
+}
+
+// GenerateReport generates a report for a project
+func (c *Client) GenerateReport(ctx context.Context, projectID string, req GenerateReportRequest) (*Report, error) {
+	var report Report
+	path := fmt.Sprintf("/api/projects/%s/report", projectID)
+	err := c.doRequest(ctx, "POST", path, req, &report)
+	return &report, err
 }
 
 // doRequest performs an HTTP request with retries and error handling
