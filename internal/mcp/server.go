@@ -28,6 +28,9 @@ type Server struct {
 	// toolsMutex protects concurrent access to tools map
 	toolsMutex sync.RWMutex
 	
+	// metrics for observability
+	metrics interface{} // Will be *observability.Metrics but avoiding import cycle
+	
 	// logger for server operations
 	// Will be added when we integrate logging
 }
@@ -141,14 +144,8 @@ func (s *Server) RegisterTool(tool Tool) error {
 	
 	// Add tool to MCP server with handler
 	s.mcpServer.AddTool(mcpTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		// Extract parameters from request
-		params, ok := request.Params.Arguments.(map[string]interface{})
-		if !ok {
-			params = make(map[string]interface{})
-		}
-		
-		// Call our tool handler
-		result, err := tool.Handler(ctx, params)
+		// Use ExecuteToolWithMetrics to track metrics
+		result, err := s.ExecuteToolWithMetrics(ctx, tool.Name, request.Params.Arguments.(map[string]interface{}))
 		if err != nil {
 			return nil, err
 		}

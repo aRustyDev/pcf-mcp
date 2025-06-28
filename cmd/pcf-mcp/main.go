@@ -61,6 +61,26 @@ func main() {
 		"transport", cfg.Server.Transport,
 	)
 	
+	// Initialize metrics
+	metrics, err := observability.InitMetrics(cfg.Metrics)
+	if err != nil {
+		logger.Error("Failed to initialize metrics", "error", err)
+		os.Exit(1)
+	}
+	
+	// Start metrics server if enabled
+	if cfg.Metrics.Enabled {
+		go func() {
+			logger.Info("Starting metrics server",
+				"port", cfg.Metrics.Port,
+				"path", cfg.Metrics.Path,
+			)
+			if err := metrics.StartServer(cfg.Metrics); err != nil {
+				logger.Error("Metrics server error", "error", err)
+			}
+		}()
+	}
+	
 	// Create PCF client
 	pcfClient, err := pcf.NewClient(cfg.PCF)
 	if err != nil {
@@ -74,6 +94,9 @@ func main() {
 		logger.Error("Failed to create MCP server", "error", err)
 		os.Exit(1)
 	}
+	
+	// Set metrics on server
+	mcpServer.SetMetrics(metrics)
 	
 	// Register all tools
 	if err := tools.RegisterAllTools(mcpServer, pcfClient); err != nil {
