@@ -9,6 +9,9 @@ import (
 // FullPCFClient defines the complete interface for all PCF operations
 type FullPCFClient interface {
 	PCFClient
+	CreateProjectClient
+	ListHostsClient
+	AddHostClient
 	// Additional interfaces will be added here as we implement more tools
 }
 
@@ -17,10 +20,10 @@ func RegisterAllTools(server *mcp.Server, pcfClient FullPCFClient) error {
 	// List of all tools to register
 	tools := []mcp.Tool{
 		NewListProjectsTool(pcfClient),
+		NewCreateProjectTool(pcfClient),
+		NewListHostsTool(pcfClient),
+		NewAddHostTool(pcfClient),
 		// Future tools will be added here:
-		// NewCreateProjectTool(pcfClient),
-		// NewListHostsTool(pcfClient),
-		// NewAddHostTool(pcfClient),
 		// NewListIssuesTool(pcfClient),
 		// NewCreateIssueTool(pcfClient),
 		// NewListCredentialsTool(pcfClient),
