@@ -68,7 +68,7 @@ tag version:
 
 # Run security scan
 security:
-    gosec ./...
+    ./scripts/security-scan.sh
     
 # Generate documentation
 docs:
