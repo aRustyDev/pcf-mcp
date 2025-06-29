@@ -54,8 +54,8 @@ func TestProjectStructure(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to read go.mod: %v", err)
 		}
-		
-		expectedModule := "github.com/analyst/pcf-mcp"
+
+		expectedModule := "github.com/aRustyDev/pcf-mcp"
 		if !contains(string(content), "module "+expectedModule) {
 			t.Errorf("go.mod does not contain expected module name: %s", expectedModule)
 		}
