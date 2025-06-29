@@ -157,15 +157,15 @@ func New() *Config {
 // LoadFromFile loads configuration from a file
 func (c *Config) LoadFromFile(path string) error {
 	viperInstance.SetConfigFile(path)
-	
+
 	if err := viperInstance.ReadInConfig(); err != nil {
 		return fmt.Errorf("failed to read config file: %w", err)
 	}
-	
+
 	if err := viperInstance.Unmarshal(c); err != nil {
 		return fmt.Errorf("failed to unmarshal config: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -176,11 +176,11 @@ func (c *Config) LoadFromEnvironment() error {
 	viperInstance.SetEnvPrefix("PCF_MCP")
 	viperInstance.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viperInstance.AutomaticEnv()
-	
+
 	if err := viperInstance.Unmarshal(c); err != nil {
 		return fmt.Errorf("failed to unmarshal config from environment: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -194,25 +194,25 @@ func (c *Config) LoadFromCLI(args []string) error {
 			return nil
 		},
 	}
-	
+
 	// Define CLI flags
 	flags := cmd.PersistentFlags()
-	
+
 	// Server flags
 	flags.String("server-host", "", "Server bind address")
 	flags.Int("server-port", 0, "Server listen port")
 	flags.String("server-transport", "", "MCP transport type (stdio or http)")
 	flags.Bool("server-auth-required", false, "Enable authentication for HTTP transport")
 	flags.String("server-auth-token", "", "Bearer token for authentication")
-	
+
 	// PCF flags
 	flags.String("pcf-url", "", "PCF base URL")
 	flags.String("pcf-api-key", "", "PCF API key")
-	
+
 	// Logging flags
 	flags.String("log-level", "", "Log level (debug, info, warn, error)")
 	flags.String("log-format", "", "Log format (json or text)")
-	
+
 	// Bind flags to viper
 	viperInstance.BindPFlag("server.host", flags.Lookup("server-host"))
 	viperInstance.BindPFlag("server.port", flags.Lookup("server-port"))
@@ -223,18 +223,18 @@ func (c *Config) LoadFromCLI(args []string) error {
 	viperInstance.BindPFlag("pcf.api_key", flags.Lookup("pcf-api-key"))
 	viperInstance.BindPFlag("logging.level", flags.Lookup("log-level"))
 	viperInstance.BindPFlag("logging.format", flags.Lookup("log-format"))
-	
+
 	// Parse arguments
 	cmd.SetArgs(args)
 	if err := cmd.Execute(); err != nil {
 		return fmt.Errorf("failed to parse CLI arguments: %w", err)
 	}
-	
+
 	// Unmarshal updated config
 	if err := viperInstance.Unmarshal(c); err != nil {
 		return fmt.Errorf("failed to unmarshal config from CLI: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -244,7 +244,7 @@ func (c *Config) Validate() error {
 	if c.Server.Transport != "stdio" && c.Server.Transport != "http" {
 		return fmt.Errorf("invalid transport type: %s (must be 'stdio' or 'http')", c.Server.Transport)
 	}
-	
+
 	// Validate log level
 	validLevels := map[string]bool{
 		"debug": true,
@@ -255,26 +255,26 @@ func (c *Config) Validate() error {
 	if !validLevels[c.Logging.Level] {
 		return fmt.Errorf("invalid log level: %s", c.Logging.Level)
 	}
-	
+
 	// Validate log format
 	if c.Logging.Format != "json" && c.Logging.Format != "text" {
 		return fmt.Errorf("invalid log format: %s (must be 'json' or 'text')", c.Logging.Format)
 	}
-	
+
 	// Validate PCF configuration
 	if c.PCF.URL == "" {
 		return fmt.Errorf("PCF URL is required")
 	}
-	
+
 	// Validate port numbers
 	if c.Server.Port < 1 || c.Server.Port > 65535 {
 		return fmt.Errorf("invalid server port: %d", c.Server.Port)
 	}
-	
+
 	if c.Metrics.Enabled && (c.Metrics.Port < 1 || c.Metrics.Port > 65535) {
 		return fmt.Errorf("invalid metrics port: %d", c.Metrics.Port)
 	}
-	
+
 	// Validate tracing configuration
 	if c.Tracing.Enabled {
 		validExporters := map[string]bool{
@@ -285,12 +285,12 @@ func (c *Config) Validate() error {
 		if !validExporters[c.Tracing.Exporter] {
 			return fmt.Errorf("invalid tracing exporter: %s", c.Tracing.Exporter)
 		}
-		
+
 		if c.Tracing.SamplingRate < 0.0 || c.Tracing.SamplingRate > 1.0 {
 			return fmt.Errorf("invalid sampling rate: %f (must be between 0.0 and 1.0)", c.Tracing.SamplingRate)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -302,7 +302,7 @@ func (c *Config) String() string {
 			maskedAPIKey = c.PCF.APIKey[:2] + "***" + c.PCF.APIKey[len(c.PCF.APIKey)-2:]
 		}
 	}
-	
+
 	return fmt.Sprintf(
 		"Config{Server:%+v, PCF:{URL:%s, APIKey:%s, Timeout:%s}, Logging:%+v, Metrics:%+v, Tracing:%+v}",
 		c.Server, c.PCF.URL, maskedAPIKey, c.PCF.Timeout, c.Logging, c.Metrics, c.Tracing,
