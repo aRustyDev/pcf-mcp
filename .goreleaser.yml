@@ -1,0 +1,216 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+
+builds:
+  - id: pcf-mcp
+    main: ./cmd/pcf-mcp
+    binary: pcf-mcp
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+      - arm
+    goarm:
+      - "7"
+    mod_timestamp: '{{ .CommitTimestamp }}'
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+      - -X main.builtBy=goreleaser
+
+archives:
+  - id: pcf-mcp
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - README.md
+      - LICENSE
+      - docs/*
+      - examples/*
+
+checksum:
+  name_template: 'checksums.txt'
+  algorithm: sha256
+
+signs:
+  - cmd: cosign
+    env:
+      - COSIGN_EXPERIMENTAL=1
+    certificate: '${artifact}.pem'
+    signature: '${artifact}.sig'
+    artifacts: checksum
+    output: true
+    args:
+      - sign-blob
+      - --output-certificate=${certificate}
+      - --output-signature=${signature}
+      - ${artifact}
+      - --yes
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  groups:
+    - title: 'Features'
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: 'Bug fixes'
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: 'Performance'
+      regexp: '^.*?perf(\([[:word:]]+\))??!?:.+$'
+      order: 2
+    - title: 'Refactors'
+      regexp: '^.*?refactor(\([[:word:]]+\))??!?:.+$'
+      order: 3
+    - title: 'Tests'
+      regexp: '^.*?test(\([[:word:]]+\))??!?:.+$'
+      order: 4
+    - title: 'Build'
+      regexp: '^.*?build(\([[:word:]]+\))??!?:.+$'
+      order: 5
+    - title: 'Continuous Integration'
+      regexp: '^.*?ci(\([[:word:]]+\))??!?:.+$'
+      order: 6
+    - title: 'Chores'
+      regexp: '^.*?chore(\([[:word:]]+\))??!?:.+$'
+      order: 7
+    - title: 'Other'
+      order: 999
+  filters:
+    exclude:
+      - '^docs'
+      - '^test'
+      - '^chore'
+      - 'merge conflict'
+      - Merge pull request
+      - Merge remote-tracking branch
+      - Merge branch
+
+release:
+  github:
+    owner: aRustyDev
+    name: pcf-mcp
+  name_template: "v{{.Version}}"
+  header: |
+    ## PCF-MCP {{.Version}} ({{ .Date }})
+
+    Welcome to the {{.Version}} release of PCF-MCP!
+
+  footer: |
+    ## Docker Images
+
+    ```bash
+    # Docker Hub
+    docker pull arustydev/pcf-mcp:{{.Version}}
+
+    # GitHub Container Registry
+    docker pull ghcr.io/arustydev/pcf-mcp:{{.Version}}
+    ```
+
+    ## Verifying Signatures
+
+    All artifacts and container images are signed with cosign. To verify:
+
+    ```bash
+    # Verify checksum file
+    cosign verify-blob \
+      --certificate checksums.txt.pem \
+      --signature checksums.txt.sig \
+      checksums.txt
+
+    # Verify container images
+    cosign verify arustydev/pcf-mcp:{{.Version}}
+    cosign verify ghcr.io/arustydev/pcf-mcp:{{.Version}}
+    ```
+
+    **Full Changelog**: https://github.com/aRustyDev/pcf-mcp/compare/{{ .PreviousTag }}...{{ .Tag }}
+
+  extra_files:
+    - glob: ./dist/*.sbom.json
+
+announce:
+  slack:
+    enabled: false
+    message_template: 'New release: {{ .ProjectName }} {{ .Tag }} is out!'
+
+sboms:
+  - artifacts: archive
+    args: ["$artifact", "--output", "cyclonedx-json@1.5=$document"]
+
+dockers:
+  - image_templates:
+      - "arustydev/pcf-mcp:{{ .Tag }}-amd64"
+      - "ghcr.io/arustydev/pcf-mcp:{{ .Tag }}-amd64"
+    use: buildx
+    build_flag_templates:
+      - "--pull"
+      - "--platform=linux/amd64"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+    extra_files:
+      - go.mod
+      - go.sum
+
+  - image_templates:
+      - "arustydev/pcf-mcp:{{ .Tag }}-arm64"
+      - "ghcr.io/arustydev/pcf-mcp:{{ .Tag }}-arm64"
+    use: buildx
+    build_flag_templates:
+      - "--pull"
+      - "--platform=linux/arm64"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+    extra_files:
+      - go.mod
+      - go.sum
+
+docker_manifests:
+  - name_template: "arustydev/pcf-mcp:{{ .Tag }}"
+    image_templates:
+      - "arustydev/pcf-mcp:{{ .Tag }}-amd64"
+      - "arustydev/pcf-mcp:{{ .Tag }}-arm64"
+
+  - name_template: "ghcr.io/arustydev/pcf-mcp:{{ .Tag }}"
+    image_templates:
+      - "ghcr.io/arustydev/pcf-mcp:{{ .Tag }}-amd64"
+      - "ghcr.io/arustydev/pcf-mcp:{{ .Tag }}-arm64"
+
+  - name_template: "arustydev/pcf-mcp:latest"
+    image_templates:
+      - "arustydev/pcf-mcp:{{ .Tag }}-amd64"
+      - "arustydev/pcf-mcp:{{ .Tag }}-arm64"
+    skip_push: false
+
+  - name_template: "ghcr.io/arustydev/pcf-mcp:latest"
+    image_templates:
+      - "ghcr.io/arustydev/pcf-mcp:{{ .Tag }}-amd64"
+      - "ghcr.io/arustydev/pcf-mcp:{{ .Tag }}-arm64"
+    skip_push: false

@@ -26,7 +26,7 @@ A Golang-based Model Context Protocol (MCP) server that integrates with the Pent
 
 ```bash
 # Clone the repository
-git clone https://github.com/analyst/pcf-mcp
+git clone https://github.com/aRustyDev/pcf-mcp
 cd pcf-mcp
 
 # Install dependencies
@@ -184,6 +184,38 @@ just clean
 - [Configuration](docs/configuration.md) - All configuration options explained
 - [Deployment Guide](docs/deployment.md) - Docker, Kubernetes, and production deployment
 - [Troubleshooting](docs/troubleshooting.md) - Common issues and solutions
+
+## CI/CD
+
+This project uses GitHub Actions for continuous integration and deployment.
+
+### Container Images
+
+Pre-built container images are available on:
+- **Docker Hub**: [`arustydev/pcf-mcp`](https://hub.docker.com/r/arustydev/pcf-mcp)
+- **GitHub Container Registry**: [`ghcr.io/arustydev/pcf-mcp`](https://ghcr.io/arustydev/pcf-mcp)
+
+```bash
+# Pull from Docker Hub
+docker pull arustydev/pcf-mcp:latest
+
+# Pull from GitHub Container Registry
+docker pull ghcr.io/arustydev/pcf-mcp:latest
+```
+
+### Automated Workflows
+
+- **CI Pipeline**: Runs on every push and PR (tests, linting, security scans)
+- **Docker Publishing**: Builds and publishes multi-arch images on main branch updates
+- **Release Pipeline**: Creates GitHub releases and versioned images on tags
+
+All images are:
+- Multi-architecture (amd64, arm64)
+- Signed with Cosign for verification
+- Scanned for vulnerabilities
+- Include SBOM (Software Bill of Materials)
+
+See [.github/workflows/README.md](.github/workflows/README.md) for detailed CI/CD documentation.
 
 ## Deployment
 
