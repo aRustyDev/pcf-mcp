@@ -83,7 +83,9 @@ func NewMockPCFServer() *MockPCFServer {
 			for _, p := range m.projects {
 				projects = append(projects, *p)
 			}
-			json.NewEncoder(w).Encode(projects)
+			if err := json.NewEncoder(w).Encode(projects); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
 		case http.MethodPost:
 			var req pcf.CreateProjectRequest
 			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -100,7 +102,9 @@ func NewMockPCFServer() *MockPCFServer {
 				UpdatedAt:   time.Now(),
 			}
 			m.projects[project.ID] = project
-			json.NewEncoder(w).Encode(project)
+			if err := json.NewEncoder(w).Encode(project); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
 		default:
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
@@ -128,7 +132,9 @@ func NewMockPCFServer() *MockPCFServer {
 				if hosts == nil {
 					hosts = []pcf.Host{}
 				}
-				json.NewEncoder(w).Encode(hosts)
+				if err := json.NewEncoder(w).Encode(hosts); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
 			case http.MethodPost:
 				var req pcf.CreateHostRequest
 				if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -145,7 +151,9 @@ func NewMockPCFServer() *MockPCFServer {
 					Status:    "active",
 				}
 				m.hosts[projectID] = append(m.hosts[projectID], host)
-				json.NewEncoder(w).Encode(&host)
+				if err := json.NewEncoder(w).Encode(&host); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
 			default:
 				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			}
@@ -157,7 +165,9 @@ func NewMockPCFServer() *MockPCFServer {
 				if issues == nil {
 					issues = []pcf.Issue{}
 				}
-				json.NewEncoder(w).Encode(issues)
+				if err := json.NewEncoder(w).Encode(issues); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
 			case http.MethodPost:
 				var req pcf.CreateIssueRequest
 				if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -176,7 +186,9 @@ func NewMockPCFServer() *MockPCFServer {
 					CVSS:        req.CVSS,
 				}
 				m.issues[projectID] = append(m.issues[projectID], issue)
-				json.NewEncoder(w).Encode(&issue)
+				if err := json.NewEncoder(w).Encode(&issue); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
 			default:
 				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			}
@@ -188,7 +200,9 @@ func NewMockPCFServer() *MockPCFServer {
 				if creds == nil {
 					creds = []pcf.Credential{}
 				}
-				json.NewEncoder(w).Encode(creds)
+				if err := json.NewEncoder(w).Encode(creds); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
 			case http.MethodPost:
 				var req pcf.AddCredentialRequest
 				if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -206,7 +220,9 @@ func NewMockPCFServer() *MockPCFServer {
 					Notes:     req.Notes,
 				}
 				m.credentials[projectID] = append(m.credentials[projectID], cred)
-				json.NewEncoder(w).Encode(&cred)
+				if err := json.NewEncoder(w).Encode(&cred); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
 			default:
 				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			}
@@ -227,7 +243,9 @@ func NewMockPCFServer() *MockPCFServer {
 					CreatedAt: time.Now(),
 					Size:      1024 * 1024, // 1MB
 				}
-				json.NewEncoder(w).Encode(&report)
+				if err := json.NewEncoder(w).Encode(&report); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
 			} else {
 				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			}

@@ -18,19 +18,19 @@ func BenchmarkAPIClient(b *testing.B) {
 		switch r.URL.Path {
 		case "/api/projects":
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`[{"id":"1","name":"Test Project"}]`))
+			_, _ = w.Write([]byte(`[{"id":"1","name":"Test Project"}]`))
 		case "/api/projects/1/hosts":
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`[{"id":"1","ip":"192.168.1.1","hostname":"test.local"}]`))
+			_, _ = w.Write([]byte(`[{"id":"1","ip":"192.168.1.1","hostname":"test.local"}]`))
 		case "/api/projects/1/issues":
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`[{"id":"1","title":"Test Issue","severity":"high"}]`))
+			_, _ = w.Write([]byte(`[{"id":"1","title":"Test Issue","severity":"high"}]`))
 		case "/api/projects/1/credentials":
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`[{"id":"1","username":"admin","service":"ssh"}]`))
+			_, _ = w.Write([]byte(`[{"id":"1","username":"admin","service":"ssh"}]`))
 		default:
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`[]`))
+			_, _ = w.Write([]byte(`[]`))
 		}
 	}))
 	defer server.Close()
@@ -89,10 +89,10 @@ func BenchmarkConcurrentRequests(b *testing.B) {
 		// Return appropriate response based on endpoint
 		if r.URL.Path == "/api/projects" {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`[{"id":"1","name":"Test Project"}]`))
+			_, _ = w.Write([]byte(`[{"id":"1","name":"Test Project"}]`))
 		} else {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`[]`))
+			_, _ = w.Write([]byte(`[]`))
 		}
 	}))
 	defer server.Close()
@@ -148,7 +148,7 @@ func BenchmarkJSONParsing(b *testing.B) {
 
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte(response))
+				_, _ = w.Write([]byte(response))
 			}))
 			defer server.Close()
 

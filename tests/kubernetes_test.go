@@ -106,7 +106,7 @@ func TestKubernetesDeployment(t *testing.T) {
 	defer func() {
 		t.Logf("Cleaning up namespace %s", namespace)
 		cmd := exec.Command("kubectl", "delete", "namespace", namespace, "--ignore-not-found")
-		cmd.Run()
+		_ = cmd.Run()
 	}()
 
 	// Apply manifests

@@ -8,6 +8,7 @@ import (
 
 	"github.com/aRustyDev/pcf-mcp/internal/config"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -115,8 +116,8 @@ func InitMetrics(cfg config.MetricsConfig) (*Metrics, error) {
 		m.ToolErrors,
 		m.ToolDuration,
 		// Also register standard Go metrics
-		prometheus.NewGoCollector(),
-		prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}),
+		collectors.NewGoCollector(),
+		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
 	)
 
 	return m, nil

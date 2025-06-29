@@ -10,7 +10,6 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/exporters/jaeger"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/exporters/zipkin"
@@ -41,7 +40,8 @@ func InitTracing(cfg config.TracingConfig) (func(context.Context) error, error) 
 	case "otlp":
 		exporter, err = createOTLPExporter(cfg.Endpoint)
 	case "jaeger":
-		exporter, err = createJaegerExporter(cfg.Endpoint)
+		// Jaeger now uses OTLP, redirect to OTLP exporter
+		exporter, err = createOTLPExporter(cfg.Endpoint)
 	case "zipkin":
 		exporter, err = createZipkinExporter(cfg.Endpoint)
 	default:
@@ -118,9 +118,11 @@ func createOTLPExporter(endpoint string) (sdktrace.SpanExporter, error) {
 	return otlptrace.New(context.Background(), client)
 }
 
-// createJaegerExporter creates a Jaeger exporter
+// createJaegerExporter creates a Jaeger exporter (deprecated - use OTLP instead)
+// Jaeger now recommends using OTLP exporters
 func createJaegerExporter(endpoint string) (sdktrace.SpanExporter, error) {
-	return jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint(endpoint)))
+	// Redirect to OTLP exporter as Jaeger now supports OTLP natively
+	return createOTLPExporter(endpoint)
 }
 
 // createZipkinExporter creates a Zipkin exporter

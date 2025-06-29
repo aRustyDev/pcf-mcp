@@ -2,6 +2,7 @@ package observability
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"log/slog"
 	"strings"
@@ -270,7 +271,7 @@ func TestLoggerContext(t *testing.T) {
 	}
 
 	// Create context with logger
-	ctx := WithLogger(nil, logger)
+	ctx := WithLogger(context.TODO(), logger)
 
 	// Retrieve logger from context
 	retrievedLogger := FromContext(ctx)
@@ -284,7 +285,7 @@ func TestLoggerContext(t *testing.T) {
 	handler := slog.NewJSONHandler(&buf, nil)
 	testLogger := slog.New(handler)
 
-	ctx2 := WithLogger(nil, testLogger)
+	ctx2 := WithLogger(context.TODO(), testLogger)
 	retrievedLogger2 := FromContext(ctx2)
 
 	retrievedLogger2.Info("test message")

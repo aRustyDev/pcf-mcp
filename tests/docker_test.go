@@ -74,7 +74,9 @@ func TestDockerImageSecurity(t *testing.T) {
 	if err := cmd.Run(); err != nil {
 		t.Fatalf("Failed to create container: %v", err)
 	}
-	defer exec.Command("docker", "rm", "pcf-mcp-test").Run()
+	defer func() {
+		_ = exec.Command("docker", "rm", "pcf-mcp-test").Run()
+	}()
 
 	// Check that it runs as non-root
 	cmd = exec.Command("docker", "inspect", "pcf-mcp-test", "--format", "{{.Config.User}}")
@@ -112,7 +114,9 @@ func TestDockerRun(t *testing.T) {
 	}
 
 	containerID := strings.TrimSpace(string(output))
-	defer exec.Command("docker", "rm", "-f", containerID).Run()
+	defer func() {
+		_ = exec.Command("docker", "rm", "-f", containerID).Run()
+	}()
 
 	// Give container time to start
 	time.Sleep(2 * time.Second)

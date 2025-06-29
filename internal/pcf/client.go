@@ -216,15 +216,14 @@ func NewClient(cfg config.PCFConfig) (*Client, error) {
 		Timeout: cfg.Timeout,
 	}
 
-	// Configure transport with TLS settings if needed
-	if cfg.InsecureSkipVerify {
-		transport := &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
-			},
-		}
-		httpClient.Transport = transport
+	// Configure transport with TLS settings
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			MinVersion:         tls.VersionTLS12,
+			InsecureSkipVerify: cfg.InsecureSkipVerify,
+		},
 	}
+	httpClient.Transport = transport
 
 	client := &Client{
 		baseURL:    cfg.URL,

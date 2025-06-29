@@ -189,8 +189,7 @@ func (gs *GracefulServer) wrapHandler(handler http.Handler) http.Handler {
 		defer gs.activeRequests.Done()
 
 		// Create request context that respects shutdown
-		ctx := r.Context()
-		reqCtx, cancel := context.WithCancel(ctx)
+		reqCtx, cancel := context.WithCancel(r.Context())
 		defer cancel()
 
 		// Monitor for shutdown

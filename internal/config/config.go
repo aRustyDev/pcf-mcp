@@ -214,15 +214,15 @@ func (c *Config) LoadFromCLI(args []string) error {
 	flags.String("log-format", "", "Log format (json or text)")
 
 	// Bind flags to viper
-	viperInstance.BindPFlag("server.host", flags.Lookup("server-host"))
-	viperInstance.BindPFlag("server.port", flags.Lookup("server-port"))
-	viperInstance.BindPFlag("server.transport", flags.Lookup("server-transport"))
-	viperInstance.BindPFlag("server.auth_required", flags.Lookup("server-auth-required"))
-	viperInstance.BindPFlag("server.auth_token", flags.Lookup("server-auth-token"))
-	viperInstance.BindPFlag("pcf.url", flags.Lookup("pcf-url"))
-	viperInstance.BindPFlag("pcf.api_key", flags.Lookup("pcf-api-key"))
-	viperInstance.BindPFlag("logging.level", flags.Lookup("log-level"))
-	viperInstance.BindPFlag("logging.format", flags.Lookup("log-format"))
+	_ = viperInstance.BindPFlag("server.host", flags.Lookup("server-host"))
+	_ = viperInstance.BindPFlag("server.port", flags.Lookup("server-port"))
+	_ = viperInstance.BindPFlag("server.transport", flags.Lookup("server-transport"))
+	_ = viperInstance.BindPFlag("server.auth_required", flags.Lookup("server-auth-required"))
+	_ = viperInstance.BindPFlag("server.auth_token", flags.Lookup("server-auth-token"))
+	_ = viperInstance.BindPFlag("pcf.url", flags.Lookup("pcf-url"))
+	_ = viperInstance.BindPFlag("pcf.api_key", flags.Lookup("pcf-api-key"))
+	_ = viperInstance.BindPFlag("logging.level", flags.Lookup("log-level"))
+	_ = viperInstance.BindPFlag("logging.format", flags.Lookup("log-format"))
 
 	// Parse arguments
 	cmd.SetArgs(args)
