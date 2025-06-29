@@ -5,52 +5,52 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/analyst/pcf-mcp/internal/pcf"
+	"github.com/aRustyDev/pcf-mcp/internal/pcf"
 )
 
 // TestNewCreateProjectTool tests creating a new create project tool
 func TestNewCreateProjectTool(t *testing.T) {
 	mockClient := &MockCreateProjectClient{}
-	
+
 	tool := NewCreateProjectTool(mockClient)
-	
+
 	if tool.Name != "create_project" {
 		t.Errorf("Expected tool name 'create_project', got '%s'", tool.Name)
 	}
-	
+
 	if tool.Description == "" {
 		t.Error("Tool description should not be empty")
 	}
-	
+
 	if tool.Handler == nil {
 		t.Error("Tool handler should not be nil")
 	}
-	
+
 	// Check input schema
 	if tool.InputSchema == nil {
 		t.Error("Tool should have input schema")
 	}
-	
+
 	// Verify required properties
 	props, ok := tool.InputSchema["properties"].(map[string]interface{})
 	if !ok {
 		t.Fatal("Input schema should have properties")
 	}
-	
+
 	if _, ok := props["name"]; !ok {
 		t.Error("Input schema missing 'name' property")
 	}
-	
+
 	if _, ok := props["description"]; !ok {
 		t.Error("Input schema missing 'description' property")
 	}
-	
+
 	// Check required fields
 	required, ok := tool.InputSchema["required"].([]string)
 	if !ok {
 		t.Fatal("Input schema should have required fields")
 	}
-	
+
 	if len(required) == 0 || required[0] != "name" {
 		t.Error("'name' should be a required field")
 	}
@@ -72,11 +72,11 @@ func (m *MockCreateProjectClient) CreateProject(ctx context.Context, req pcf.Cre
 // TestCreateProjectHandler tests the create project handler functionality
 func TestCreateProjectHandler(t *testing.T) {
 	tests := []struct {
-		name          string
-		params        map[string]interface{}
-		mockResponse  *pcf.Project
-		mockError     error
-		expectError   bool
+		name           string
+		params         map[string]interface{}
+		mockResponse   *pcf.Project
+		mockError      error
+		expectError    bool
 		validateResult func(t *testing.T, result interface{})
 	}{
 		{
@@ -100,16 +100,16 @@ func TestCreateProjectHandler(t *testing.T) {
 				if !ok {
 					t.Fatal("Result should be a map")
 				}
-				
+
 				project, ok := res["project"].(map[string]interface{})
 				if !ok {
 					t.Fatal("Result should contain 'project' key")
 				}
-				
+
 				if project["id"] != "proj-123" {
 					t.Errorf("Expected project ID 'proj-123', got '%v'", project["id"])
 				}
-				
+
 				if project["name"] != "Test Project" {
 					t.Errorf("Expected project name 'Test Project', got '%v'", project["name"])
 				}
@@ -166,7 +166,7 @@ func TestCreateProjectHandler(t *testing.T) {
 			expectError:  true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create mock client
@@ -175,14 +175,14 @@ func TestCreateProjectHandler(t *testing.T) {
 					return tt.mockResponse, tt.mockError
 				},
 			}
-			
+
 			// Create tool
 			tool := NewCreateProjectTool(mockClient)
-			
+
 			// Execute handler
 			ctx := context.Background()
 			result, err := tool.Handler(ctx, tt.params)
-			
+
 			// Check error expectation
 			if tt.expectError {
 				if err == nil {
@@ -190,11 +190,11 @@ func TestCreateProjectHandler(t *testing.T) {
 				}
 				return
 			}
-			
+
 			if err != nil {
 				t.Fatalf("Unexpected error: %v", err)
 			}
-			
+
 			// Validate result
 			if tt.validateResult != nil {
 				tt.validateResult(t, result)

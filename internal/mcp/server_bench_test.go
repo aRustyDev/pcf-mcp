@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/analyst/pcf-mcp/internal/config"
+	"github.com/aRustyDev/pcf-mcp/internal/config"
 )
 
 // BenchmarkToolExecution benchmarks tool execution
 func BenchmarkToolExecution(b *testing.B) {
 	cfg := config.ServerConfig{
-		Transport: "stdio",
+		Transport:          "stdio",
 		MaxConcurrentTools: 10,
 	}
 

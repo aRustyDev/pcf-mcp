@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/analyst/pcf-mcp/internal/pcf"
+	"github.com/aRustyDev/pcf-mcp/internal/pcf"
 )
 
 // MockListCredentialsClient extends MockPCFClient with ListCredentials method
@@ -24,42 +24,42 @@ func (m *MockListCredentialsClient) ListCredentials(ctx context.Context, project
 // TestNewListCredentialsTool tests creating a new list credentials tool
 func TestNewListCredentialsTool(t *testing.T) {
 	mockClient := &MockListCredentialsClient{}
-	
+
 	tool := NewListCredentialsTool(mockClient)
-	
+
 	if tool.Name != "list_credentials" {
 		t.Errorf("Expected tool name 'list_credentials', got '%s'", tool.Name)
 	}
-	
+
 	if tool.Description == "" {
 		t.Error("Tool description should not be empty")
 	}
-	
+
 	if tool.Handler == nil {
 		t.Error("Tool handler should not be nil")
 	}
-	
+
 	// Check input schema
 	if tool.InputSchema == nil {
 		t.Error("Tool should have input schema")
 	}
-	
+
 	// Verify required properties
 	props, ok := tool.InputSchema["properties"].(map[string]interface{})
 	if !ok {
 		t.Fatal("Input schema should have properties")
 	}
-	
+
 	if _, ok := props["project_id"]; !ok {
 		t.Error("Input schema missing 'project_id' property")
 	}
-	
+
 	// Check required fields
 	required, ok := tool.InputSchema["required"].([]string)
 	if !ok {
 		t.Fatal("Input schema should have required fields")
 	}
-	
+
 	if len(required) == 0 || required[0] != "project_id" {
 		t.Error("'project_id' should be a required field")
 	}
@@ -227,7 +227,7 @@ func TestListCredentialsHandler(t *testing.T) {
 			expectedCount: 2, // Should include only ssh credentials
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create mock client
@@ -239,14 +239,14 @@ func TestListCredentialsHandler(t *testing.T) {
 					return tt.mockResponse, tt.mockError
 				},
 			}
-			
+
 			// Create tool
 			tool := NewListCredentialsTool(mockClient)
-			
+
 			// Execute handler
 			ctx := context.Background()
 			result, err := tool.Handler(ctx, tt.params)
-			
+
 			// Check error expectation
 			if tt.expectError {
 				if err == nil {
@@ -254,38 +254,38 @@ func TestListCredentialsHandler(t *testing.T) {
 				}
 				return
 			}
-			
+
 			if err != nil {
 				t.Fatalf("Unexpected error: %v", err)
 			}
-			
+
 			// Verify result structure
 			resultMap, ok := result.(map[string]interface{})
 			if !ok {
 				t.Fatal("Result should be a map")
 			}
-			
+
 			// Check for credentials key
 			credentialsData, ok := resultMap["credentials"]
 			if !ok {
 				t.Fatal("Result should contain 'credentials' key")
 			}
-			
+
 			// Verify credentials array
 			credentials, ok := credentialsData.([]map[string]interface{})
 			if !ok {
 				t.Fatal("Credentials should be an array of maps")
 			}
-			
+
 			// Check count
 			if len(credentials) != tt.expectedCount {
 				t.Errorf("Expected %d credentials, got %d", tt.expectedCount, len(credentials))
 			}
-			
+
 			// Verify credential structure if we have credentials
 			if len(credentials) > 0 {
 				firstCred := credentials[0]
-				
+
 				// Check required fields
 				requiredFields := []string{"id", "project_id", "type", "username"}
 				for _, field := range requiredFields {
@@ -293,7 +293,7 @@ func TestListCredentialsHandler(t *testing.T) {
 						t.Errorf("Credential missing required field: %s", field)
 					}
 				}
-				
+
 				// Value should always be masked
 				if value, ok := firstCred["value"].(string); ok {
 					if value != "***REDACTED***" {
@@ -301,7 +301,7 @@ func TestListCredentialsHandler(t *testing.T) {
 					}
 				}
 			}
-			
+
 			// Check total count
 			if totalCount, ok := resultMap["total_count"].(int); ok {
 				if totalCount != tt.expectedCount {
@@ -310,7 +310,7 @@ func TestListCredentialsHandler(t *testing.T) {
 			} else {
 				t.Error("Result should contain 'total_count' as int")
 			}
-			
+
 			// Check type breakdown if present
 			if typeBreakdown, ok := resultMap["type_breakdown"].(map[string]interface{}); ok {
 				// Verify it's a map with counts

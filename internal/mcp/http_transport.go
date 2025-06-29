@@ -20,10 +20,10 @@ const (
 	// HTTP header names
 	headerContentType   = "Content-Type"
 	headerAuthorization = "Authorization"
-	
+
 	// Content types
 	contentTypeJSON = "application/json"
-	
+
 	// Bearer token prefix
 	bearerPrefix = "Bearer "
 )
@@ -38,7 +38,7 @@ type httpMetrics struct {
 // newHTTPMetrics creates HTTP metrics with a dedicated registry
 func newHTTPMetrics() *httpMetrics {
 	registry := prometheus.NewRegistry()
-	
+
 	requestsTotal := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "http_requests_total",
@@ -46,7 +46,7 @@ func newHTTPMetrics() *httpMetrics {
 		},
 		[]string{"method", "path", "status"},
 	)
-	
+
 	requestDuration := prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "http_request_duration_seconds",
@@ -55,10 +55,10 @@ func newHTTPMetrics() *httpMetrics {
 		},
 		[]string{"method", "path", "status"},
 	)
-	
+
 	registry.MustRegister(requestsTotal)
 	registry.MustRegister(requestDuration)
-	
+
 	return &httpMetrics{
 		requestsTotal:   requestsTotal,
 		requestDuration: requestDuration,
@@ -69,32 +69,32 @@ func newHTTPMetrics() *httpMetrics {
 // HTTPHandler returns an HTTP handler for the MCP server
 func (s *Server) HTTPHandler() http.Handler {
 	mux := http.NewServeMux()
-	
+
 	// Initialize HTTP metrics
 	httpMetrics := newHTTPMetrics()
-	
+
 	// Health check endpoint
 	mux.HandleFunc("/health", s.handleHealth)
-	
+
 	// Server info endpoint
 	mux.HandleFunc("/info", s.handleInfo)
-	
+
 	// List tools endpoint
 	mux.HandleFunc("/tools", s.handleTools)
-	
+
 	// Tool execution endpoint (pattern matches /tools/{toolName})
 	mux.HandleFunc("/tools/", s.handleToolExecution)
-	
+
 	// Metrics endpoint with custom registry
 	mux.Handle("/metrics", promhttp.HandlerFor(httpMetrics.registry, promhttp.HandlerOpts{}))
-	
+
 	// Wrap with middleware
 	handler := s.corsMiddleware(mux)
 	handler = s.authMiddleware(handler)
 	handler = s.metricsMiddleware(handler, httpMetrics)
 	handler = s.tracingMiddleware(handler)
 	handler = s.loggingMiddleware(handler)
-	
+
 	return handler
 }
 
@@ -104,13 +104,13 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	
+
 	response := map[string]interface{}{
 		"status":    "healthy",
 		"timestamp": time.Now().UTC().Format(time.RFC3339),
 		"version":   Version,
 	}
-	
+
 	s.writeJSON(w, http.StatusOK, response)
 }
 
@@ -120,7 +120,7 @@ func (s *Server) handleInfo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	
+
 	caps := s.Capabilities()
 	response := map[string]interface{}{
 		"name":    s.Name(),
@@ -131,7 +131,7 @@ func (s *Server) handleInfo(w http.ResponseWriter, r *http.Request) {
 			"prompts":   caps.Prompts,
 		},
 	}
-	
+
 	s.writeJSON(w, http.StatusOK, response)
 }
 
@@ -141,10 +141,10 @@ func (s *Server) handleTools(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	
+
 	tools := s.ListTools()
 	toolList := make([]map[string]interface{}, 0, len(tools))
-	
+
 	for _, tool := range tools {
 		toolInfo := map[string]interface{}{
 			"name":        tool.Name,
@@ -155,11 +155,11 @@ func (s *Server) handleTools(w http.ResponseWriter, r *http.Request) {
 		}
 		toolList = append(toolList, toolInfo)
 	}
-	
+
 	response := map[string]interface{}{
 		"tools": toolList,
 	}
-	
+
 	s.writeJSON(w, http.StatusOK, response)
 }
 
@@ -171,26 +171,26 @@ func (s *Server) handleToolExecution(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
-	
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	
+
 	// Extract tool name from path
 	path := strings.TrimPrefix(r.URL.Path, "/tools/")
 	if path == "" || strings.Contains(path, "/") {
 		s.writeError(w, http.StatusNotFound, "Tool not found")
 		return
 	}
-	
+
 	// Parse request body
 	var params map[string]interface{}
 	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
 		s.writeError(w, http.StatusBadRequest, fmt.Sprintf("Invalid request body: %v", err))
 		return
 	}
-	
+
 	// Execute tool
 	result, err := s.ExecuteTool(r.Context(), path, params)
 	if err != nil {
@@ -201,11 +201,11 @@ func (s *Server) handleToolExecution(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	
+
 	response := map[string]interface{}{
 		"result": result,
 	}
-	
+
 	s.writeJSON(w, http.StatusOK, response)
 }
 
@@ -217,13 +217,13 @@ func (s *Server) corsMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		w.Header().Set("Access-Control-Max-Age", "3600")
-		
+
 		// Handle preflight requests
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusOK)
 			return
 		}
-		
+
 		next.ServeHTTP(w, r)
 	})
 }
@@ -236,32 +236,32 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		
+
 		// Skip auth for health and metrics endpoints
 		if r.URL.Path == "/health" || r.URL.Path == "/metrics" {
 			next.ServeHTTP(w, r)
 			return
 		}
-		
+
 		// Check Authorization header
 		authHeader := r.Header.Get(headerAuthorization)
 		if authHeader == "" {
 			s.writeError(w, http.StatusUnauthorized, "Authorization header required")
 			return
 		}
-		
+
 		// Validate Bearer token
 		if !strings.HasPrefix(authHeader, bearerPrefix) {
 			s.writeError(w, http.StatusUnauthorized, "Invalid authorization format")
 			return
 		}
-		
+
 		token := strings.TrimPrefix(authHeader, bearerPrefix)
 		if token != s.config.AuthToken {
 			s.writeError(w, http.StatusUnauthorized, "Invalid authorization token")
 			return
 		}
-		
+
 		next.ServeHTTP(w, r)
 	})
 }
@@ -270,17 +270,17 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 func (s *Server) metricsMiddleware(next http.Handler, metrics *httpMetrics) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		
+
 		// Wrap response writer to capture status code
 		wrapped := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
-		
+
 		// Handle request
 		next.ServeHTTP(wrapped, r)
-		
+
 		// Record metrics
 		duration := time.Since(start).Seconds()
 		status := fmt.Sprintf("%d", wrapped.statusCode)
-		
+
 		metrics.requestsTotal.WithLabelValues(r.Method, r.URL.Path, status).Inc()
 		metrics.requestDuration.WithLabelValues(r.Method, r.URL.Path, status).Observe(duration)
 	})
@@ -289,7 +289,7 @@ func (s *Server) metricsMiddleware(next http.Handler, metrics *httpMetrics) http
 // tracingMiddleware adds distributed tracing
 func (s *Server) tracingMiddleware(next http.Handler) http.Handler {
 	tracer := otel.Tracer("pcf-mcp-http")
-	
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx, span := tracer.Start(r.Context(), fmt.Sprintf("%s %s", r.Method, r.URL.Path),
 			trace.WithAttributes(
@@ -299,16 +299,16 @@ func (s *Server) tracingMiddleware(next http.Handler) http.Handler {
 			),
 		)
 		defer span.End()
-		
+
 		// Pass context with span
 		r = r.WithContext(ctx)
-		
+
 		// Wrap response writer to capture status code
 		wrapped := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
-		
+
 		// Handle request
 		next.ServeHTTP(wrapped, r)
-		
+
 		// Add response attributes
 		span.SetAttributes(
 			attribute.Int("http.status_code", wrapped.statusCode),
@@ -320,13 +320,13 @@ func (s *Server) tracingMiddleware(next http.Handler) http.Handler {
 func (s *Server) loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		
+
 		// Wrap response writer to capture status code
 		wrapped := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
-		
+
 		// Handle request
 		next.ServeHTTP(wrapped, r)
-		
+
 		// Log request
 		duration := time.Since(start)
 		slog.Info("HTTP request",
@@ -354,7 +354,7 @@ func (rw *responseWriter) WriteHeader(code int) {
 func (s *Server) writeJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set(headerContentType, contentTypeJSON)
 	w.WriteHeader(status)
-	
+
 	if err := json.NewEncoder(w).Encode(data); err != nil {
 		slog.Error("Failed to encode JSON response", "error", err)
 	}
@@ -372,7 +372,7 @@ func (s *Server) writeError(w http.ResponseWriter, status int, message string) {
 func (s *Server) StartHTTP(ctx context.Context) error {
 	// Build address from host and port
 	addr := fmt.Sprintf("%s:%d", s.config.Host, s.config.Port)
-	
+
 	// Create HTTP server
 	httpServer := &http.Server{
 		Addr:         addr,
@@ -381,7 +381,7 @@ func (s *Server) StartHTTP(ctx context.Context) error {
 		WriteTimeout: s.config.WriteTimeout,
 		IdleTimeout:  120 * time.Second,
 	}
-	
+
 	// Start server in goroutine
 	errCh := make(chan error, 1)
 	go func() {
@@ -390,20 +390,20 @@ func (s *Server) StartHTTP(ctx context.Context) error {
 			errCh <- fmt.Errorf("HTTP server error: %w", err)
 		}
 	}()
-	
+
 	// Wait for context cancellation or error
 	select {
 	case <-ctx.Done():
 		// Graceful shutdown
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		
+
 		slog.Info("Shutting down HTTP server")
 		if err := httpServer.Shutdown(shutdownCtx); err != nil {
 			return fmt.Errorf("HTTP server shutdown error: %w", err)
 		}
 		return nil
-		
+
 	case err := <-errCh:
 		return err
 	}

@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/analyst/pcf-mcp/internal/config"
+	"github.com/aRustyDev/pcf-mcp/internal/config"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -15,25 +15,25 @@ import (
 type Metrics struct {
 	// RequestsTotal counts total HTTP requests
 	RequestsTotal *prometheus.CounterVec
-	
+
 	// RequestDuration tracks HTTP request duration
 	RequestDuration *prometheus.HistogramVec
-	
+
 	// ActiveConnections tracks current active connections
 	ActiveConnections prometheus.Gauge
-	
+
 	// ToolExecutions counts tool executions
 	ToolExecutions *prometheus.CounterVec
-	
+
 	// ToolErrors counts tool execution errors
 	ToolErrors *prometheus.CounterVec
-	
+
 	// ToolDuration tracks tool execution duration
 	ToolDuration *prometheus.HistogramVec
-	
+
 	// registry is the Prometheus registry
 	registry *prometheus.Registry
-	
+
 	// enabled indicates if metrics collection is active
 	enabled bool
 }
@@ -42,18 +42,18 @@ type Metrics struct {
 func InitMetrics(cfg config.MetricsConfig) (*Metrics, error) {
 	// Create custom registry
 	registry := prometheus.NewRegistry()
-	
+
 	// Create metrics
 	m := &Metrics{
 		enabled:  cfg.Enabled,
 		registry: registry,
 	}
-	
+
 	if !cfg.Enabled {
 		// Return no-op implementation
 		return m, nil
 	}
-	
+
 	// HTTP request metrics
 	m.RequestsTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -62,7 +62,7 @@ func InitMetrics(cfg config.MetricsConfig) (*Metrics, error) {
 		},
 		[]string{"method", "path", "status"},
 	)
-	
+
 	m.RequestDuration = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "pcf_mcp_request_duration_seconds",
@@ -71,7 +71,7 @@ func InitMetrics(cfg config.MetricsConfig) (*Metrics, error) {
 		},
 		[]string{"method", "path", "status"},
 	)
-	
+
 	// Connection metrics
 	m.ActiveConnections = prometheus.NewGauge(
 		prometheus.GaugeOpts{
@@ -79,7 +79,7 @@ func InitMetrics(cfg config.MetricsConfig) (*Metrics, error) {
 			Help: "Current number of active connections",
 		},
 	)
-	
+
 	// Tool metrics
 	m.ToolExecutions = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -88,7 +88,7 @@ func InitMetrics(cfg config.MetricsConfig) (*Metrics, error) {
 		},
 		[]string{"tool", "status"},
 	)
-	
+
 	m.ToolErrors = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "pcf_mcp_tool_errors_total",
@@ -96,7 +96,7 @@ func InitMetrics(cfg config.MetricsConfig) (*Metrics, error) {
 		},
 		[]string{"tool"},
 	)
-	
+
 	m.ToolDuration = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "pcf_mcp_tool_duration_seconds",
@@ -105,7 +105,7 @@ func InitMetrics(cfg config.MetricsConfig) (*Metrics, error) {
 		},
 		[]string{"tool"},
 	)
-	
+
 	// Register all metrics
 	registry.MustRegister(
 		m.RequestsTotal,
@@ -118,7 +118,7 @@ func InitMetrics(cfg config.MetricsConfig) (*Metrics, error) {
 		prometheus.NewGoCollector(),
 		prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}),
 	)
-	
+
 	return m, nil
 }
 
@@ -127,9 +127,9 @@ func (m *Metrics) RecordRequest(method, path string, status int, duration time.D
 	if !m.enabled || m.RequestsTotal == nil {
 		return
 	}
-	
+
 	statusStr := fmt.Sprintf("%d", status)
-	
+
 	m.RequestsTotal.WithLabelValues(method, path, statusStr).Inc()
 	m.RequestDuration.WithLabelValues(method, path, statusStr).Observe(duration.Seconds())
 }
@@ -139,13 +139,13 @@ func (m *Metrics) RecordToolExecution(toolName string, success bool, duration ti
 	if !m.enabled || m.ToolExecutions == nil {
 		return
 	}
-	
+
 	status := "success"
 	if !success {
 		status = "error"
 		m.ToolErrors.WithLabelValues(toolName).Inc()
 	}
-	
+
 	m.ToolExecutions.WithLabelValues(toolName, status).Inc()
 	m.ToolDuration.WithLabelValues(toolName).Observe(duration.Seconds())
 }
@@ -155,7 +155,7 @@ func (m *Metrics) ConnectionOpened() {
 	if !m.enabled || m.ActiveConnections == nil {
 		return
 	}
-	
+
 	m.ActiveConnections.Inc()
 }
 
@@ -164,7 +164,7 @@ func (m *Metrics) ConnectionClosed() {
 	if !m.enabled || m.ActiveConnections == nil {
 		return
 	}
-	
+
 	m.ActiveConnections.Dec()
 }
 
@@ -180,10 +180,10 @@ func (m *Metrics) StartServer(cfg config.MetricsConfig) error {
 	if !cfg.Enabled {
 		return nil
 	}
-	
+
 	mux := http.NewServeMux()
 	mux.Handle(cfg.Path, m.Handler())
-	
+
 	addr := fmt.Sprintf(":%d", cfg.Port)
 	server := &http.Server{
 		Addr:         addr,
@@ -192,7 +192,7 @@ func (m *Metrics) StartServer(cfg config.MetricsConfig) error {
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  15 * time.Second,
 	}
-	
+
 	return server.ListenAndServe()
 }
 
@@ -203,18 +203,18 @@ func (m *Metrics) HTTPMiddleware(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		
+
 		start := time.Now()
-		
+
 		// Wrap response writer to capture status code
 		wrapped := &responseWriter{
 			ResponseWriter: w,
 			statusCode:     http.StatusOK,
 		}
-		
+
 		// Serve request
 		next.ServeHTTP(wrapped, r)
-		
+
 		// Record metrics
 		duration := time.Since(start)
 		m.RecordRequest(r.Method, r.URL.Path, wrapped.statusCode, duration)

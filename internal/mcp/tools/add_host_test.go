@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/analyst/pcf-mcp/internal/pcf"
+	"github.com/aRustyDev/pcf-mcp/internal/pcf"
 )
 
 // MockAddHostClient extends MockPCFClient with AddHost method
@@ -24,45 +24,45 @@ func (m *MockAddHostClient) AddHost(ctx context.Context, projectID string, req p
 // TestNewAddHostTool tests creating a new add host tool
 func TestNewAddHostTool(t *testing.T) {
 	mockClient := &MockAddHostClient{}
-	
+
 	tool := NewAddHostTool(mockClient)
-	
+
 	if tool.Name != "add_host" {
 		t.Errorf("Expected tool name 'add_host', got '%s'", tool.Name)
 	}
-	
+
 	if tool.Description == "" {
 		t.Error("Tool description should not be empty")
 	}
-	
+
 	if tool.Handler == nil {
 		t.Error("Tool handler should not be nil")
 	}
-	
+
 	// Check input schema
 	if tool.InputSchema == nil {
 		t.Error("Tool should have input schema")
 	}
-	
+
 	// Verify required properties
 	props, ok := tool.InputSchema["properties"].(map[string]interface{})
 	if !ok {
 		t.Fatal("Input schema should have properties")
 	}
-	
+
 	requiredProps := []string{"project_id", "ip"}
 	for _, prop := range requiredProps {
 		if _, ok := props[prop]; !ok {
 			t.Errorf("Input schema missing '%s' property", prop)
 		}
 	}
-	
+
 	// Check required fields
 	required, ok := tool.InputSchema["required"].([]string)
 	if !ok {
 		t.Fatal("Input schema should have required fields")
 	}
-	
+
 	if len(required) != 2 {
 		t.Errorf("Expected 2 required fields, got %d", len(required))
 	}
@@ -125,8 +125,8 @@ func TestAddHostHandler(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name:        "Missing project_id",
-			params:      map[string]interface{}{
+			name: "Missing project_id",
+			params: map[string]interface{}{
 				"ip": "192.168.1.100",
 			},
 			expectedReq:  pcf.CreateHostRequest{},
@@ -135,8 +135,8 @@ func TestAddHostHandler(t *testing.T) {
 			expectError:  true,
 		},
 		{
-			name:        "Missing IP address",
-			params:      map[string]interface{}{
+			name: "Missing IP address",
+			params: map[string]interface{}{
 				"project_id": "proj-123",
 			},
 			expectedReq:  pcf.CreateHostRequest{},
@@ -214,7 +214,7 @@ func TestAddHostHandler(t *testing.T) {
 			expectError:  true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create mock client
@@ -226,7 +226,7 @@ func TestAddHostHandler(t *testing.T) {
 						if projectID != expectedProjectID {
 							t.Errorf("Expected project ID '%s', got '%s'", expectedProjectID, projectID)
 						}
-						
+
 						// Verify request structure
 						if req.IP != tt.expectedReq.IP {
 							t.Errorf("Expected IP '%s', got '%s'", tt.expectedReq.IP, req.IP)
@@ -237,24 +237,24 @@ func TestAddHostHandler(t *testing.T) {
 						if req.OS != tt.expectedReq.OS {
 							t.Errorf("Expected OS '%s', got '%s'", tt.expectedReq.OS, req.OS)
 						}
-						
+
 						// Check services array
 						if len(req.Services) != len(tt.expectedReq.Services) {
 							t.Errorf("Expected %d services, got %d", len(tt.expectedReq.Services), len(req.Services))
 						}
 					}
-					
+
 					return tt.mockResponse, tt.mockError
 				},
 			}
-			
+
 			// Create tool
 			tool := NewAddHostTool(mockClient)
-			
+
 			// Execute handler
 			ctx := context.Background()
 			result, err := tool.Handler(ctx, tt.params)
-			
+
 			// Check error expectation
 			if tt.expectError {
 				if err == nil {
@@ -262,29 +262,29 @@ func TestAddHostHandler(t *testing.T) {
 				}
 				return
 			}
-			
+
 			if err != nil {
 				t.Fatalf("Unexpected error: %v", err)
 			}
-			
+
 			// Verify result structure
 			resultMap, ok := result.(map[string]interface{})
 			if !ok {
 				t.Fatal("Result should be a map")
 			}
-			
+
 			// Check for host key
 			hostData, ok := resultMap["host"]
 			if !ok {
 				t.Fatal("Result should contain 'host' key")
 			}
-			
+
 			// Verify host structure
 			host, ok := hostData.(map[string]interface{})
 			if !ok {
 				t.Fatal("Host should be a map")
 			}
-			
+
 			// Check required fields
 			requiredFields := []string{"id", "project_id", "ip", "status"}
 			for _, field := range requiredFields {
@@ -292,12 +292,12 @@ func TestAddHostHandler(t *testing.T) {
 					t.Errorf("Host missing required field: %s", field)
 				}
 			}
-			
+
 			// Check message
 			if message, ok := resultMap["message"].(string); !ok || message == "" {
 				t.Error("Result should contain a non-empty message")
 			}
-			
+
 			// Run custom result check if provided
 			if tt.checkResult != nil {
 				tt.checkResult(t, result)

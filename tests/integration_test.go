@@ -1,3 +1,4 @@
+//go:build integration
 // +build integration
 
 package tests
@@ -13,11 +14,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/analyst/pcf-mcp/internal/config"
-	"github.com/analyst/pcf-mcp/internal/mcp"
-	"github.com/analyst/pcf-mcp/internal/mcp/tools"
-	"github.com/analyst/pcf-mcp/internal/observability"
-	"github.com/analyst/pcf-mcp/internal/pcf"
+	"github.com/aRustyDev/pcf-mcp/internal/config"
+	"github.com/aRustyDev/pcf-mcp/internal/mcp"
+	"github.com/aRustyDev/pcf-mcp/internal/mcp/tools"
+	"github.com/aRustyDev/pcf-mcp/internal/observability"
+	"github.com/aRustyDev/pcf-mcp/internal/pcf"
 )
 
 // MockPCFServer creates a mock PCF API server for testing
@@ -37,7 +38,7 @@ func NewMockPCFServer() *MockPCFServer {
 		issues:      make(map[string][]pcf.Issue),
 		credentials: make(map[string][]pcf.Credential),
 	}
-	
+
 	// Initialize with some test data
 	m.projects["test-project"] = &pcf.Project{
 		ID:          "test-project",
@@ -47,7 +48,7 @@ func NewMockPCFServer() *MockPCFServer {
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
-	
+
 	m.hosts["test-project"] = []pcf.Host{
 		{
 			ID:        "host-1",
@@ -59,7 +60,7 @@ func NewMockPCFServer() *MockPCFServer {
 			Status:    "active",
 		},
 	}
-	
+
 	m.issues["test-project"] = []pcf.Issue{
 		{
 			ID:          "issue-1",
@@ -70,10 +71,10 @@ func NewMockPCFServer() *MockPCFServer {
 			Status:      "Open",
 		},
 	}
-	
+
 	// Create HTTP server
 	mux := http.NewServeMux()
-	
+
 	// Projects endpoints
 	mux.HandleFunc("/api/projects", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
@@ -104,21 +105,21 @@ func NewMockPCFServer() *MockPCFServer {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
 	})
-	
+
 	// Hosts endpoints
 	mux.HandleFunc("/api/projects/", func(w http.ResponseWriter, r *http.Request) {
 		// Extract project ID and resource from path
 		path := r.URL.Path[len("/api/projects/"):]
 		parts := bytes.Split([]byte(path), []byte("/"))
-		
+
 		if len(parts) < 2 {
 			http.Error(w, "Invalid path", http.StatusBadRequest)
 			return
 		}
-		
+
 		projectID := string(parts[0])
 		resource := string(parts[1])
-		
+
 		switch resource {
 		case "hosts":
 			switch r.Method {
@@ -148,7 +149,7 @@ func NewMockPCFServer() *MockPCFServer {
 			default:
 				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			}
-			
+
 		case "issues":
 			switch r.Method {
 			case http.MethodGet:
@@ -179,7 +180,7 @@ func NewMockPCFServer() *MockPCFServer {
 			default:
 				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			}
-			
+
 		case "credentials":
 			switch r.Method {
 			case http.MethodGet:
@@ -209,7 +210,7 @@ func NewMockPCFServer() *MockPCFServer {
 			default:
 				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			}
-			
+
 		case "report":
 			if r.Method == http.MethodPost {
 				var req pcf.GenerateReportRequest
@@ -230,12 +231,12 @@ func NewMockPCFServer() *MockPCFServer {
 			} else {
 				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			}
-			
+
 		default:
 			http.Error(w, "Not found", http.StatusNotFound)
 		}
 	})
-	
+
 	m.Server = httptest.NewServer(mux)
 	return m
 }
@@ -246,11 +247,11 @@ func TestFullIntegration(t *testing.T) {
 	if os.Getenv("INTEGRATION_TESTS") != "true" {
 		t.Skip("Integration tests not enabled. Set INTEGRATION_TESTS=true to run.")
 	}
-	
+
 	// Start mock PCF server
 	mockPCF := NewMockPCFServer()
 	defer mockPCF.Close()
-	
+
 	// Create configuration
 	cfg := &config.Config{
 		Server: config.ServerConfig{
@@ -277,45 +278,45 @@ func TestFullIntegration(t *testing.T) {
 			Enabled: false,
 		},
 	}
-	
+
 	// Initialize logging
 	logger, err := observability.NewLogger(cfg.Logging)
 	if err != nil {
 		t.Fatalf("Failed to initialize logger: %v", err)
 	}
 	observability.SetGlobalLogger(logger)
-	
+
 	// Initialize metrics
 	metrics, err := observability.InitMetrics(cfg.Metrics)
 	if err != nil {
 		t.Fatalf("Failed to initialize metrics: %v", err)
 	}
-	
+
 	// Create PCF client
 	pcfClient, err := pcf.NewClient(cfg.PCF)
 	if err != nil {
 		t.Fatalf("Failed to create PCF client: %v", err)
 	}
-	
+
 	// Create MCP server
 	mcpServer, err := mcp.NewServer(cfg.Server)
 	if err != nil {
 		t.Fatalf("Failed to create MCP server: %v", err)
 	}
-	
+
 	// Set metrics
 	mcpServer.SetMetrics(metrics)
-	
+
 	// Register all tools
 	if err := tools.RegisterAllTools(mcpServer, pcfClient); err != nil {
 		t.Fatalf("Failed to register tools: %v", err)
 	}
-	
+
 	// Start HTTP server
 	handler := mcpServer.HTTPHandler()
 	ts := httptest.NewServer(handler)
 	defer ts.Close()
-	
+
 	// Test all endpoints
 	t.Run("Health Check", func(t *testing.T) {
 		resp, err := http.Get(ts.URL + "/health")
@@ -323,68 +324,68 @@ func TestFullIntegration(t *testing.T) {
 			t.Fatalf("Failed to get health: %v", err)
 		}
 		defer resp.Body.Close()
-		
+
 		if resp.StatusCode != http.StatusOK {
 			t.Errorf("Expected status 200, got %d", resp.StatusCode)
 		}
-		
+
 		var health map[string]interface{}
 		if err := json.NewDecoder(resp.Body).Decode(&health); err != nil {
 			t.Fatalf("Failed to decode health response: %v", err)
 		}
-		
+
 		if health["status"] != "healthy" {
 			t.Errorf("Expected healthy status, got %v", health["status"])
 		}
 	})
-	
+
 	t.Run("Server Info", func(t *testing.T) {
 		resp, err := http.Get(ts.URL + "/info")
 		if err != nil {
 			t.Fatalf("Failed to get info: %v", err)
 		}
 		defer resp.Body.Close()
-		
+
 		if resp.StatusCode != http.StatusOK {
 			t.Errorf("Expected status 200, got %d", resp.StatusCode)
 		}
-		
+
 		var info map[string]interface{}
 		if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
 			t.Fatalf("Failed to decode info response: %v", err)
 		}
-		
+
 		if info["name"] != "pcf-mcp" {
 			t.Errorf("Expected name 'pcf-mcp', got %v", info["name"])
 		}
 	})
-	
+
 	t.Run("List Tools", func(t *testing.T) {
 		resp, err := http.Get(ts.URL + "/tools")
 		if err != nil {
 			t.Fatalf("Failed to list tools: %v", err)
 		}
 		defer resp.Body.Close()
-		
+
 		if resp.StatusCode != http.StatusOK {
 			t.Errorf("Expected status 200, got %d", resp.StatusCode)
 		}
-		
+
 		var result map[string]interface{}
 		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 			t.Fatalf("Failed to decode tools response: %v", err)
 		}
-		
+
 		tools, ok := result["tools"].([]interface{})
 		if !ok {
 			t.Fatal("Tools should be an array")
 		}
-		
+
 		if len(tools) != 9 {
 			t.Errorf("Expected 9 tools, got %d", len(tools))
 		}
 	})
-	
+
 	// Test each tool
 	testCases := []struct {
 		name   string
@@ -393,8 +394,8 @@ func TestFullIntegration(t *testing.T) {
 		check  func(t *testing.T, result map[string]interface{})
 	}{
 		{
-			name: "List Projects",
-			tool: "list_projects",
+			name:   "List Projects",
+			tool:   "list_projects",
 			params: map[string]interface{}{},
 			check: func(t *testing.T, result map[string]interface{}) {
 				projects, ok := result["projects"].([]interface{})
@@ -557,7 +558,7 @@ func TestFullIntegration(t *testing.T) {
 			},
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Prepare request
@@ -565,7 +566,7 @@ func TestFullIntegration(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to marshal params: %v", err)
 			}
-			
+
 			// Make request
 			resp, err := http.Post(
 				fmt.Sprintf("%s/tools/%s", ts.URL, tc.tool),
@@ -576,25 +577,25 @@ func TestFullIntegration(t *testing.T) {
 				t.Fatalf("Failed to execute tool: %v", err)
 			}
 			defer resp.Body.Close()
-			
+
 			if resp.StatusCode != http.StatusOK {
 				var errResp map[string]interface{}
 				json.NewDecoder(resp.Body).Decode(&errResp)
 				t.Fatalf("Expected status 200, got %d: %v", resp.StatusCode, errResp)
 			}
-			
+
 			// Decode response
 			var response map[string]interface{}
 			if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
 				t.Fatalf("Failed to decode response: %v", err)
 			}
-			
+
 			// Extract result
 			result, ok := response["result"].(map[string]interface{})
 			if !ok {
 				t.Fatal("Expected result in response")
 			}
-			
+
 			// Run custom check
 			tc.check(t, result)
 		})
@@ -606,11 +607,11 @@ func TestConcurrentRequests(t *testing.T) {
 	if os.Getenv("INTEGRATION_TESTS") != "true" {
 		t.Skip("Integration tests not enabled. Set INTEGRATION_TESTS=true to run.")
 	}
-	
+
 	// Start mock PCF server
 	mockPCF := NewMockPCFServer()
 	defer mockPCF.Close()
-	
+
 	// Create minimal configuration
 	cfg := &config.Config{
 		Server: config.ServerConfig{
@@ -629,41 +630,41 @@ func TestConcurrentRequests(t *testing.T) {
 			Format: "json",
 		},
 	}
-	
+
 	// Initialize components
 	logger, _ := observability.NewLogger(cfg.Logging)
 	observability.SetGlobalLogger(logger)
-	
+
 	pcfClient, err := pcf.NewClient(cfg.PCF)
 	if err != nil {
 		t.Fatalf("Failed to create PCF client: %v", err)
 	}
-	
+
 	mcpServer, err := mcp.NewServer(cfg.Server)
 	if err != nil {
 		t.Fatalf("Failed to create MCP server: %v", err)
 	}
-	
+
 	if err := tools.RegisterAllTools(mcpServer, pcfClient); err != nil {
 		t.Fatalf("Failed to register tools: %v", err)
 	}
-	
+
 	// Start HTTP server
 	handler := mcpServer.HTTPHandler()
 	ts := httptest.NewServer(handler)
 	defer ts.Close()
-	
+
 	// Number of concurrent requests
 	concurrency := 20
 	iterations := 100
-	
+
 	// Channel to collect errors
 	errCh := make(chan error, concurrency*iterations)
-	
+
 	// Synchronization
 	var wg sync.WaitGroup
 	wg.Add(concurrency)
-	
+
 	// Run concurrent requests
 	start := time.Now()
 	for i := 0; i < concurrency; i++ {
@@ -674,7 +675,7 @@ func TestConcurrentRequests(t *testing.T) {
 				toolIndex := (workerID + j) % 3
 				var tool string
 				var params map[string]interface{}
-				
+
 				switch toolIndex {
 				case 0:
 					tool = "list_projects"
@@ -690,7 +691,7 @@ func TestConcurrentRequests(t *testing.T) {
 						"project_id": "test-project",
 					}
 				}
-				
+
 				// Make request
 				body, _ := json.Marshal(params)
 				resp, err := http.Post(
@@ -698,7 +699,6 @@ func TestConcurrentRequests(t *testing.T) {
 					"application/json",
 					bytes.NewReader(body),
 				)
-				
 				if err != nil {
 					select {
 					case errCh <- fmt.Errorf("worker %d request %d failed: %w", workerID, j, err):
@@ -707,7 +707,7 @@ func TestConcurrentRequests(t *testing.T) {
 					}
 					continue
 				}
-				
+
 				if resp.StatusCode != http.StatusOK {
 					select {
 					case errCh <- fmt.Errorf("worker %d request %d got status %d", workerID, j, resp.StatusCode):
@@ -715,21 +715,21 @@ func TestConcurrentRequests(t *testing.T) {
 						// Channel full, skip error
 					}
 				}
-				
+
 				resp.Body.Close()
 			}
 		}(i)
 	}
-	
+
 	// Wait for completion with timeout
 	timeout := time.After(30 * time.Second)
 	done := make(chan bool)
-	
+
 	go func() {
 		wg.Wait()
 		close(done)
 	}()
-	
+
 	select {
 	case <-done:
 		// Check for errors
@@ -742,13 +742,13 @@ func TestConcurrentRequests(t *testing.T) {
 				t.Fatal("Too many errors, stopping test")
 			}
 		}
-		
+
 		duration := time.Since(start)
 		totalRequests := concurrency * iterations
 		rps := float64(totalRequests) / duration.Seconds()
-		
+
 		t.Logf("Completed %d requests in %v (%.2f req/s)", totalRequests, duration, rps)
-		
+
 	case <-timeout:
 		t.Fatal("Test timed out")
 	}
@@ -759,7 +759,7 @@ func TestAuthentication(t *testing.T) {
 	if os.Getenv("INTEGRATION_TESTS") != "true" {
 		t.Skip("Integration tests not enabled. Set INTEGRATION_TESTS=true to run.")
 	}
-	
+
 	// Create configuration with auth enabled
 	cfg := &config.Config{
 		Server: config.ServerConfig{
@@ -777,21 +777,21 @@ func TestAuthentication(t *testing.T) {
 			Format: "json",
 		},
 	}
-	
+
 	// Initialize components
 	logger, _ := observability.NewLogger(cfg.Logging)
 	observability.SetGlobalLogger(logger)
-	
+
 	mcpServer, err := mcp.NewServer(cfg.Server)
 	if err != nil {
 		t.Fatalf("Failed to create MCP server: %v", err)
 	}
-	
+
 	// Start HTTP server
 	handler := mcpServer.HTTPHandler()
 	ts := httptest.NewServer(handler)
 	defer ts.Close()
-	
+
 	testCases := []struct {
 		name       string
 		path       string
@@ -829,24 +829,24 @@ func TestAuthentication(t *testing.T) {
 			wantStatus: http.StatusOK,
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			req, err := http.NewRequest("GET", ts.URL+tc.path, nil)
 			if err != nil {
 				t.Fatalf("Failed to create request: %v", err)
 			}
-			
+
 			if tc.authHeader != "" {
 				req.Header.Set("Authorization", tc.authHeader)
 			}
-			
+
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
 				t.Fatalf("Failed to send request: %v", err)
 			}
 			defer resp.Body.Close()
-			
+
 			if resp.StatusCode != tc.wantStatus {
 				t.Errorf("Expected status %d, got %d", tc.wantStatus, resp.StatusCode)
 			}

@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/analyst/pcf-mcp/internal/mcp"
-	"github.com/analyst/pcf-mcp/internal/pcf"
+	"github.com/aRustyDev/pcf-mcp/internal/mcp"
+	"github.com/aRustyDev/pcf-mcp/internal/pcf"
 )
 
 // GenerateReportClient defines the interface for generating reports
@@ -68,17 +68,17 @@ func createGenerateReportHandler(client GenerateReportClient) mcp.ToolHandler {
 		if !ok {
 			return nil, fmt.Errorf("project_id parameter must be a string")
 		}
-		
+
 		if projectID == "" {
 			return nil, fmt.Errorf("project_id cannot be empty")
 		}
-		
+
 		// Extract and validate format
 		format, ok := params["format"].(string)
 		if !ok {
 			return nil, fmt.Errorf("format parameter must be a string")
 		}
-		
+
 		// Validate format value
 		validFormats := map[string]bool{
 			"pdf":      true,
@@ -87,29 +87,29 @@ func createGenerateReportHandler(client GenerateReportClient) mcp.ToolHandler {
 			"markdown": true,
 			"csv":      true,
 		}
-		
+
 		if !validFormats[format] {
 			return nil, fmt.Errorf("invalid format: %s. Must be one of: pdf, html, json, markdown, csv", format)
 		}
-		
+
 		// Create request
 		req := pcf.GenerateReportRequest{
 			Format: format,
 		}
-		
+
 		// Extract optional boolean flags
 		if includeHosts, ok := params["include_hosts"].(bool); ok {
 			req.IncludeHosts = includeHosts
 		}
-		
+
 		if includeIssues, ok := params["include_issues"].(bool); ok {
 			req.IncludeIssues = includeIssues
 		}
-		
+
 		if includeCredentials, ok := params["include_credentials"].(bool); ok {
 			req.IncludeCredentials = includeCredentials
 		}
-		
+
 		// Extract optional sections
 		if sectionsRaw, ok := params["sections"]; ok {
 			// Handle different types that might come from JSON
@@ -131,13 +131,13 @@ func createGenerateReportHandler(client GenerateReportClient) mcp.ToolHandler {
 				return nil, fmt.Errorf("sections parameter must be an array of strings")
 			}
 		}
-		
+
 		// Call PCF client to generate report
 		report, err := client.GenerateReport(ctx, projectID, req)
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate report: %w", err)
 		}
-		
+
 		// Build response
 		reportMap := map[string]interface{}{
 			"id":         report.ID,
@@ -146,17 +146,17 @@ func createGenerateReportHandler(client GenerateReportClient) mcp.ToolHandler {
 			"status":     report.Status,
 			"created_at": report.CreatedAt.Format("2006-01-02T15:04:05Z"),
 		}
-		
+
 		// Add optional fields if present
 		if report.URL != "" {
 			reportMap["url"] = report.URL
 		}
-		
+
 		if report.Size > 0 {
 			reportMap["size"] = report.Size
 			reportMap["size_human"] = formatBytes(report.Size)
 		}
-		
+
 		// Create appropriate message based on status
 		var message string
 		switch report.Status {
@@ -172,12 +172,12 @@ func createGenerateReportHandler(client GenerateReportClient) mcp.ToolHandler {
 		default:
 			message = fmt.Sprintf("Report %s created with status: %s", report.ID, report.Status)
 		}
-		
+
 		response := map[string]interface{}{
 			"report":  reportMap,
 			"message": message,
 		}
-		
+
 		return response, nil
 	}
 }

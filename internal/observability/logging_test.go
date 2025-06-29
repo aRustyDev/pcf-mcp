@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/analyst/pcf-mcp/internal/config"
+	"github.com/aRustyDev/pcf-mcp/internal/config"
 )
 
 // TestNewLogger tests the creation of a new logger instance
@@ -51,13 +51,13 @@ func TestNewLogger(t *testing.T) {
 // TestLoggerLevels tests that the logger respects configured log levels
 func TestLoggerLevels(t *testing.T) {
 	tests := []struct {
-		name           string
-		level          string
-		logDebug       bool
-		logInfo        bool
-		logWarn        bool
-		logError       bool
-		expectedLogs   int
+		name         string
+		level        string
+		logDebug     bool
+		logInfo      bool
+		logWarn      bool
+		logError     bool
+		expectedLogs int
 	}{
 		{
 			name:         "Debug level shows all",
@@ -283,10 +283,10 @@ func TestLoggerContext(t *testing.T) {
 	var buf bytes.Buffer
 	handler := slog.NewJSONHandler(&buf, nil)
 	testLogger := slog.New(handler)
-	
+
 	ctx2 := WithLogger(nil, testLogger)
 	retrievedLogger2 := FromContext(ctx2)
-	
+
 	retrievedLogger2.Info("test message")
 	if !strings.Contains(buf.String(), "test message") {
 		t.Error("Retrieved logger doesn't log properly")

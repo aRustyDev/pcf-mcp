@@ -1,3 +1,4 @@
+//go:build integration
 // +build integration
 
 package tests
@@ -12,11 +13,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/analyst/pcf-mcp/internal/config"
-	"github.com/analyst/pcf-mcp/internal/mcp"
-	"github.com/analyst/pcf-mcp/internal/mcp/tools"
-	"github.com/analyst/pcf-mcp/internal/observability"
-	"github.com/analyst/pcf-mcp/internal/pcf"
+	"github.com/aRustyDev/pcf-mcp/internal/config"
+	"github.com/aRustyDev/pcf-mcp/internal/mcp"
+	"github.com/aRustyDev/pcf-mcp/internal/mcp/tools"
+	"github.com/aRustyDev/pcf-mcp/internal/observability"
+	"github.com/aRustyDev/pcf-mcp/internal/pcf"
 )
 
 // TestEndToEndPentestWorkflow simulates a complete pentest workflow
@@ -24,11 +25,11 @@ func TestEndToEndPentestWorkflow(t *testing.T) {
 	if os.Getenv("INTEGRATION_TESTS") != "true" {
 		t.Skip("Integration tests not enabled. Set INTEGRATION_TESTS=true to run.")
 	}
-	
+
 	// Start mock PCF server
 	mockPCF := NewMockPCFServer()
 	defer mockPCF.Close()
-	
+
 	// Create configuration
 	cfg := &config.Config{
 		Server: config.ServerConfig{
@@ -52,47 +53,47 @@ func TestEndToEndPentestWorkflow(t *testing.T) {
 			Port:    0,
 		},
 	}
-	
+
 	// Initialize components
 	logger, err := observability.NewLogger(cfg.Logging)
 	if err != nil {
 		t.Fatalf("Failed to initialize logger: %v", err)
 	}
 	observability.SetGlobalLogger(logger)
-	
+
 	metrics, err := observability.InitMetrics(cfg.Metrics)
 	if err != nil {
 		t.Fatalf("Failed to initialize metrics: %v", err)
 	}
-	
+
 	pcfClient, err := pcf.NewClient(cfg.PCF)
 	if err != nil {
 		t.Fatalf("Failed to create PCF client: %v", err)
 	}
-	
+
 	mcpServer, err := mcp.NewServer(cfg.Server)
 	if err != nil {
 		t.Fatalf("Failed to create MCP server: %v", err)
 	}
-	
+
 	mcpServer.SetMetrics(metrics)
-	
+
 	if err := tools.RegisterAllTools(mcpServer, pcfClient); err != nil {
 		t.Fatalf("Failed to register tools: %v", err)
 	}
-	
+
 	// Start HTTP server
 	handler := mcpServer.HTTPHandler()
 	ts := httptest.NewServer(handler)
 	defer ts.Close()
-	
+
 	// Helper function to execute a tool
 	executeTool := func(tool string, params map[string]interface{}) (map[string]interface{}, error) {
 		body, err := json.Marshal(params)
 		if err != nil {
 			return nil, err
 		}
-		
+
 		resp, err := http.Post(
 			fmt.Sprintf("%s/tools/%s", ts.URL, tool),
 			"application/json",
@@ -102,29 +103,29 @@ func TestEndToEndPentestWorkflow(t *testing.T) {
 			return nil, err
 		}
 		defer resp.Body.Close()
-		
+
 		if resp.StatusCode != http.StatusOK {
 			var errResp map[string]interface{}
 			json.NewDecoder(resp.Body).Decode(&errResp)
 			return nil, fmt.Errorf("tool execution failed: %v", errResp)
 		}
-		
+
 		var response map[string]interface{}
 		if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
 			return nil, err
 		}
-		
+
 		result, ok := response["result"].(map[string]interface{})
 		if !ok {
 			return nil, fmt.Errorf("no result in response")
 		}
-		
+
 		return result, nil
 	}
-	
+
 	// Workflow steps
 	var projectID string
-	
+
 	// Step 1: Create a new pentest project
 	t.Run("Create Project", func(t *testing.T) {
 		result, err := executeTool("create_project", map[string]interface{}{
@@ -132,17 +133,16 @@ func TestEndToEndPentestWorkflow(t *testing.T) {
 			"description": "Q4 2024 Security Assessment",
 			"team":        []string{"alice", "bob", "charlie"},
 		})
-		
 		if err != nil {
 			t.Fatalf("Failed to create project: %v", err)
 		}
-		
+
 		project := result["project"].(map[string]interface{})
 		projectID = project["id"].(string)
-		
+
 		t.Logf("Created project: %s", projectID)
 	})
-	
+
 	// Step 2: Add discovered hosts
 	var hostIDs []string
 	t.Run("Add Hosts", func(t *testing.T) {
@@ -171,7 +171,7 @@ func TestEndToEndPentestWorkflow(t *testing.T) {
 				services: []string{"ldap", "kerberos", "smb", "rdp"},
 			},
 		}
-		
+
 		for _, host := range hosts {
 			result, err := executeTool("add_host", map[string]interface{}{
 				"project_id": projectID,
@@ -180,17 +180,16 @@ func TestEndToEndPentestWorkflow(t *testing.T) {
 				"os":         host.os,
 				"services":   host.services,
 			})
-			
 			if err != nil {
 				t.Fatalf("Failed to add host %s: %v", host.ip, err)
 			}
-			
+
 			h := result["host"].(map[string]interface{})
 			hostIDs = append(hostIDs, h["id"].(string))
 			t.Logf("Added host: %s (%s)", host.hostname, host.ip)
 		}
 	})
-	
+
 	// Step 3: Add discovered vulnerabilities
 	var issueIDs []string
 	t.Run("Add Issues", func(t *testing.T) {
@@ -235,7 +234,7 @@ func TestEndToEndPentestWorkflow(t *testing.T) {
 				cvss:        0,
 			},
 		}
-		
+
 		for _, issue := range issues {
 			params := map[string]interface{}{
 				"project_id":  projectID,
@@ -243,30 +242,30 @@ func TestEndToEndPentestWorkflow(t *testing.T) {
 				"description": issue.description,
 				"severity":    issue.severity,
 			}
-			
+
 			if issue.hostIndex < len(hostIDs) {
 				params["host_id"] = hostIDs[issue.hostIndex]
 			}
-			
+
 			if issue.cve != "" {
 				params["cve"] = issue.cve
 			}
-			
+
 			if issue.cvss > 0 {
 				params["cvss"] = issue.cvss
 			}
-			
+
 			result, err := executeTool("create_issue", params)
 			if err != nil {
 				t.Fatalf("Failed to create issue '%s': %v", issue.title, err)
 			}
-			
+
 			i := result["issue"].(map[string]interface{})
 			issueIDs = append(issueIDs, i["id"].(string))
 			t.Logf("Created issue: %s (%s)", issue.title, issue.severity)
 		}
 	})
-	
+
 	// Step 4: Add discovered credentials
 	t.Run("Add Credentials", func(t *testing.T) {
 		creds := []struct {
@@ -298,7 +297,7 @@ func TestEndToEndPentestWorkflow(t *testing.T) {
 				hostIdx:  2,
 			},
 		}
-		
+
 		for _, cred := range creds {
 			params := map[string]interface{}{
 				"project_id": projectID,
@@ -307,16 +306,16 @@ func TestEndToEndPentestWorkflow(t *testing.T) {
 				"value":      cred.value,
 				"service":    cred.service,
 			}
-			
+
 			if cred.hostIdx < len(hostIDs) {
 				params["host_id"] = hostIDs[cred.hostIdx]
 			}
-			
+
 			result, err := executeTool("add_credential", params)
 			if err != nil {
 				t.Fatalf("Failed to add credential: %v", err)
 			}
-			
+
 			c := result["credential"].(map[string]interface{})
 			if c["value"] != "***REDACTED***" {
 				t.Error("Credential value should be redacted")
@@ -324,7 +323,7 @@ func TestEndToEndPentestWorkflow(t *testing.T) {
 			t.Logf("Added credential: %s@%s", cred.username, cred.service)
 		}
 	})
-	
+
 	// Step 5: Query the data
 	t.Run("Query Data", func(t *testing.T) {
 		// List all issues with Critical severity
@@ -335,7 +334,7 @@ func TestEndToEndPentestWorkflow(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to list issues: %v", err)
 		}
-		
+
 		issues := result["issues"].([]interface{})
 		criticalCount := 0
 		for _, i := range issues {
@@ -344,15 +343,15 @@ func TestEndToEndPentestWorkflow(t *testing.T) {
 				criticalCount++
 			}
 		}
-		
+
 		if criticalCount != 2 {
 			t.Errorf("Expected 2 critical issues, found %d", criticalCount)
 		}
-		
+
 		// Check severity breakdown
 		breakdown := result["severity_breakdown"].(map[string]interface{})
 		t.Logf("Severity breakdown: %+v", breakdown)
-		
+
 		// List hosts with Windows OS
 		result, err = executeTool("list_hosts", map[string]interface{}{
 			"project_id": projectID,
@@ -361,7 +360,7 @@ func TestEndToEndPentestWorkflow(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to list hosts: %v", err)
 		}
-		
+
 		hosts := result["hosts"].([]interface{})
 		windowsCount := 0
 		for _, h := range hosts {
@@ -370,11 +369,11 @@ func TestEndToEndPentestWorkflow(t *testing.T) {
 				windowsCount++
 			}
 		}
-		
+
 		if windowsCount < 1 {
 			t.Error("Expected at least one Windows host")
 		}
-		
+
 		// List all credentials
 		result, err = executeTool("list_credentials", map[string]interface{}{
 			"project_id": projectID,
@@ -382,12 +381,12 @@ func TestEndToEndPentestWorkflow(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to list credentials: %v", err)
 		}
-		
+
 		creds := result["credentials"].([]interface{})
 		if len(creds) < 3 {
 			t.Errorf("Expected at least 3 credentials, found %d", len(creds))
 		}
-		
+
 		// Verify all credential values are redacted
 		for _, c := range creds {
 			cred := c.(map[string]interface{})
@@ -396,11 +395,11 @@ func TestEndToEndPentestWorkflow(t *testing.T) {
 			}
 		}
 	})
-	
+
 	// Step 6: Generate final report
 	t.Run("Generate Report", func(t *testing.T) {
 		formats := []string{"pdf", "html", "json"}
-		
+
 		for _, format := range formats {
 			result, err := executeTool("generate_report", map[string]interface{}{
 				"project_id":          projectID,
@@ -415,24 +414,23 @@ func TestEndToEndPentestWorkflow(t *testing.T) {
 					"remediation",
 				},
 			})
-			
 			if err != nil {
 				t.Fatalf("Failed to generate %s report: %v", format, err)
 			}
-			
+
 			report := result["report"].(map[string]interface{})
 			if report["status"] != "completed" {
 				t.Errorf("Expected report status 'completed', got %v", report["status"])
 			}
-			
+
 			if report["format"] != format {
 				t.Errorf("Expected format '%s', got %v", format, report["format"])
 			}
-			
+
 			t.Logf("Generated %s report: %s", format, report["url"])
 		}
 	})
-	
+
 	// Step 7: Verify metrics
 	t.Run("Check Metrics", func(t *testing.T) {
 		resp, err := http.Get(ts.URL + "/metrics")
@@ -440,31 +438,31 @@ func TestEndToEndPentestWorkflow(t *testing.T) {
 			t.Fatalf("Failed to get metrics: %v", err)
 		}
 		defer resp.Body.Close()
-		
+
 		if resp.StatusCode != http.StatusOK {
 			t.Errorf("Expected status 200, got %d", resp.StatusCode)
 		}
-		
+
 		// Read metrics
 		buf := new(bytes.Buffer)
 		buf.ReadFrom(resp.Body)
 		metrics := buf.String()
-		
+
 		// Check for expected metrics
 		expectedMetrics := []string{
 			"http_requests_total",
 			"http_request_duration_seconds",
 		}
-		
+
 		for _, metric := range expectedMetrics {
 			if !bytes.Contains([]byte(metrics), []byte(metric)) {
 				t.Errorf("Expected metric '%s' not found", metric)
 			}
 		}
-		
+
 		t.Log("Metrics endpoint working correctly")
 	})
-	
+
 	// Step 8: Final summary
 	t.Run("Project Summary", func(t *testing.T) {
 		// Get all projects to verify our test project
@@ -472,7 +470,7 @@ func TestEndToEndPentestWorkflow(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to list projects: %v", err)
 		}
-		
+
 		projects := result["projects"].([]interface{})
 		found := false
 		for _, p := range projects {
@@ -482,11 +480,11 @@ func TestEndToEndPentestWorkflow(t *testing.T) {
 				break
 			}
 		}
-		
+
 		if !found {
 			t.Error("Test project not found in project list")
 		}
-		
+
 		t.Logf("\nPentest Workflow Summary:")
 		t.Logf("- Project: ACME Corp Pentest")
 		t.Logf("- Hosts discovered: %d", len(hostIDs))
@@ -501,11 +499,11 @@ func TestStressTest(t *testing.T) {
 	if os.Getenv("STRESS_TEST") != "true" {
 		t.Skip("Stress tests not enabled. Set STRESS_TEST=true to run.")
 	}
-	
+
 	// Start mock PCF server with delay to simulate network latency
 	mockPCF := NewMockPCFServer()
 	defer mockPCF.Close()
-	
+
 	// Add artificial delay to mock server
 	originalHandler := mockPCF.Server.Config.Handler
 	mockPCF.Server.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -514,7 +512,7 @@ func TestStressTest(t *testing.T) {
 		time.Sleep(delay)
 		originalHandler.ServeHTTP(w, r)
 	})
-	
+
 	// Create configuration with higher limits
 	cfg := &config.Config{
 		Server: config.ServerConfig{
@@ -534,47 +532,47 @@ func TestStressTest(t *testing.T) {
 			Format: "json",
 		},
 	}
-	
+
 	// Initialize components
 	logger, _ := observability.NewLogger(cfg.Logging)
 	observability.SetGlobalLogger(logger)
-	
+
 	pcfClient, err := pcf.NewClient(cfg.PCF)
 	if err != nil {
 		t.Fatalf("Failed to create PCF client: %v", err)
 	}
-	
+
 	mcpServer, err := mcp.NewServer(cfg.Server)
 	if err != nil {
 		t.Fatalf("Failed to create MCP server: %v", err)
 	}
-	
+
 	if err := tools.RegisterAllTools(mcpServer, pcfClient); err != nil {
 		t.Fatalf("Failed to register tools: %v", err)
 	}
-	
+
 	// Start HTTP server
 	handler := mcpServer.HTTPHandler()
 	ts := httptest.NewServer(handler)
 	defer ts.Close()
-	
+
 	// Stress test parameters
 	workers := 100
 	requestsPerWorker := 1000
 	totalRequests := workers * requestsPerWorker
-	
+
 	t.Logf("Starting stress test: %d workers, %d requests each = %d total requests",
 		workers, requestsPerWorker, totalRequests)
-	
+
 	// Metrics
 	type metrics struct {
-		requests   int
-		errors     int
-		durations  []time.Duration
+		requests  int
+		errors    int
+		durations []time.Duration
 	}
-	
+
 	results := make(chan metrics, workers)
-	
+
 	// Start workers
 	start := time.Now()
 	for i := 0; i < workers; i++ {
@@ -582,10 +580,10 @@ func TestStressTest(t *testing.T) {
 			m := metrics{
 				durations: make([]time.Duration, 0, requestsPerWorker),
 			}
-			
+
 			for j := 0; j < requestsPerWorker; j++ {
 				reqStart := time.Now()
-				
+
 				// Make a simple request
 				body := []byte(`{}`)
 				resp, err := http.Post(
@@ -593,42 +591,42 @@ func TestStressTest(t *testing.T) {
 					"application/json",
 					bytes.NewReader(body),
 				)
-				
+
 				duration := time.Since(reqStart)
 				m.durations = append(m.durations, duration)
 				m.requests++
-				
+
 				if err != nil {
 					m.errors++
 					continue
 				}
-				
+
 				if resp.StatusCode != http.StatusOK {
 					m.errors++
 				}
 				resp.Body.Close()
 			}
-			
+
 			results <- m
 		}(i)
 	}
-	
+
 	// Collect results
 	var totalErrors int
 	var allDurations []time.Duration
-	
+
 	for i := 0; i < workers; i++ {
 		m := <-results
 		totalErrors += m.errors
 		allDurations = append(allDurations, m.durations...)
 	}
-	
+
 	elapsed := time.Since(start)
-	
+
 	// Calculate statistics
 	var sum time.Duration
 	var min, max time.Duration = time.Hour, 0
-	
+
 	for _, d := range allDurations {
 		sum += d
 		if d < min {
@@ -638,15 +636,15 @@ func TestStressTest(t *testing.T) {
 			max = d
 		}
 	}
-	
+
 	avg := sum / time.Duration(len(allDurations))
 	rps := float64(totalRequests) / elapsed.Seconds()
-	
+
 	// Calculate percentiles (simplified)
 	p50 := allDurations[len(allDurations)*50/100]
 	p95 := allDurations[len(allDurations)*95/100]
 	p99 := allDurations[len(allDurations)*99/100]
-	
+
 	// Report results
 	t.Logf("\nStress Test Results:")
 	t.Logf("Total time: %v", elapsed)
@@ -660,17 +658,17 @@ func TestStressTest(t *testing.T) {
 	t.Logf("P95: %v", p95)
 	t.Logf("P99: %v", p99)
 	t.Logf("Max: %v", max)
-	
+
 	// Assertions
 	errorRate := float64(totalErrors) / float64(totalRequests)
 	if errorRate > 0.01 { // 1% error rate threshold
 		t.Errorf("Error rate too high: %.2f%%", errorRate*100)
 	}
-	
+
 	if rps < 100 {
 		t.Errorf("Throughput too low: %.2f req/s", rps)
 	}
-	
+
 	if p99 > 5*time.Second {
 		t.Errorf("P99 latency too high: %v", p99)
 	}

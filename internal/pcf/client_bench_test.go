@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/analyst/pcf-mcp/internal/config"
+	"github.com/aRustyDev/pcf-mcp/internal/config"
 )
 
 // BenchmarkAPIClient benchmarks various API client operations
@@ -16,27 +16,27 @@ func BenchmarkAPIClient(b *testing.B) {
 	// Create mock server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/api/v1/projects/":
+		case "/api/projects":
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(`[{"id":"1","name":"Test Project"}]`))
-		case "/api/v1/projects/1/hosts/":
+		case "/api/projects/1/hosts":
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(`[{"id":"1","ip":"192.168.1.1","hostname":"test.local"}]`))
-		case "/api/v1/projects/1/issues/":
+		case "/api/projects/1/issues":
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(`[{"id":"1","title":"Test Issue","severity":"high"}]`))
-		case "/api/v1/projects/1/credentials/":
+		case "/api/projects/1/credentials":
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(`[{"id":"1","username":"admin","service":"ssh"}]`))
 		default:
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`{}`))
+			w.Write([]byte(`[]`))
 		}
 	}))
 	defer server.Close()
 
 	cfg := config.PCFConfig{
-		BaseURL: server.URL,
+		URL:     server.URL,
 		APIKey:  "test-token",
 		Timeout: 30 * time.Second,
 	}
@@ -86,14 +86,19 @@ func BenchmarkAPIClient(b *testing.B) {
 // BenchmarkConcurrentRequests benchmarks concurrent API requests
 func BenchmarkConcurrentRequests(b *testing.B) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Simulate some processing time
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"ok"}`))
+		// Return appropriate response based on endpoint
+		if r.URL.Path == "/api/projects" {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`[{"id":"1","name":"Test Project"}]`))
+		} else {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`[]`))
+		}
 	}))
 	defer server.Close()
 
 	cfg := config.PCFConfig{
-		BaseURL: server.URL,
+		URL:     server.URL,
 		APIKey:  "test-token",
 		Timeout: 30 * time.Second,
 	}
@@ -103,7 +108,8 @@ func BenchmarkConcurrentRequests(b *testing.B) {
 	}
 	ctx := context.Background()
 
-	concurrencyLevels := []int{1, 10, 50, 100}
+	// Use more reasonable concurrency levels to avoid port exhaustion
+	concurrencyLevels := []int{1, 5, 10, 20}
 
 	for _, concurrency := range concurrencyLevels {
 		b.Run(fmt.Sprintf("concurrency-%d", concurrency), func(b *testing.B) {
@@ -147,14 +153,14 @@ func BenchmarkJSONParsing(b *testing.B) {
 			defer server.Close()
 
 			cfg := config.PCFConfig{
-		BaseURL: server.URL,
-		APIKey:  "test-token",
-		Timeout: 30 * time.Second,
-	}
-	client, err := NewClient(cfg)
-	if err != nil {
-		b.Fatal(err)
-	}
+				URL:     server.URL,
+				APIKey:  "test-token",
+				Timeout: 30 * time.Second,
+			}
+			client, err := NewClient(cfg)
+			if err != nil {
+				b.Fatal(err)
+			}
 			ctx := context.Background()
 
 			b.ResetTimer()

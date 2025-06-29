@@ -5,8 +5,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/analyst/pcf-mcp/internal/mcp"
-	"github.com/analyst/pcf-mcp/internal/pcf"
+	"github.com/aRustyDev/pcf-mcp/internal/mcp"
+	"github.com/aRustyDev/pcf-mcp/internal/pcf"
 )
 
 // PCFClient defines the interface for PCF operations needed by tools
@@ -47,22 +47,22 @@ func createListProjectsHandler(client PCFClient) mcp.ToolHandler {
 			}
 			statusFilter = statusStr
 		}
-		
+
 		// Call PCF client to list projects
 		projects, err := client.ListProjects(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to list projects: %w", err)
 		}
-		
+
 		// Convert projects to response format
 		var projectList []map[string]interface{}
-		
+
 		for _, project := range projects {
 			// Apply status filter if provided
 			if statusFilter != "" && project.Status != statusFilter {
 				continue
 			}
-			
+
 			projectMap := map[string]interface{}{
 				"id":          project.ID,
 				"name":        project.Name,
@@ -71,21 +71,21 @@ func createListProjectsHandler(client PCFClient) mcp.ToolHandler {
 				"created_at":  project.CreatedAt.Format("2006-01-02T15:04:05Z"),
 				"updated_at":  project.UpdatedAt.Format("2006-01-02T15:04:05Z"),
 			}
-			
+
 			// Add team members if present
 			if len(project.Team) > 0 {
 				projectMap["team"] = project.Team
 			}
-			
+
 			projectList = append(projectList, projectMap)
 		}
-		
+
 		// Build response
 		response := map[string]interface{}{
 			"projects":    projectList,
 			"total_count": len(projectList),
 		}
-		
+
 		return response, nil
 	}
 }

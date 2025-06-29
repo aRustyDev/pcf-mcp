@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/analyst/pcf-mcp/internal/config"
+	"github.com/aRustyDev/pcf-mcp/internal/config"
 )
 
 // TestInitMetrics tests the initialization of metrics

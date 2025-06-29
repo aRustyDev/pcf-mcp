@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/analyst/pcf-mcp/internal/mcp"
-	"github.com/analyst/pcf-mcp/internal/pcf"
+	"github.com/aRustyDev/pcf-mcp/internal/mcp"
+	"github.com/aRustyDev/pcf-mcp/internal/pcf"
 )
 
 // CreateProjectClient defines the interface for creating projects
@@ -55,21 +55,21 @@ func createCreateProjectHandler(client CreateProjectClient) mcp.ToolHandler {
 		if !ok {
 			return nil, fmt.Errorf("name parameter must be a string")
 		}
-		
+
 		if name == "" {
 			return nil, fmt.Errorf("project name cannot be empty")
 		}
-		
+
 		// Create request
 		req := pcf.CreateProjectRequest{
 			Name: name,
 		}
-		
+
 		// Extract optional description
 		if desc, ok := params["description"].(string); ok {
 			req.Description = desc
 		}
-		
+
 		// Extract optional team members
 		if teamRaw, ok := params["team"]; ok {
 			// Handle different types that might come from JSON
@@ -91,13 +91,13 @@ func createCreateProjectHandler(client CreateProjectClient) mcp.ToolHandler {
 				return nil, fmt.Errorf("team parameter must be an array of strings")
 			}
 		}
-		
+
 		// Call PCF client to create project
 		project, err := client.CreateProject(ctx, req)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create project: %w", err)
 		}
-		
+
 		// Build response
 		response := map[string]interface{}{
 			"project": map[string]interface{}{
@@ -110,12 +110,12 @@ func createCreateProjectHandler(client CreateProjectClient) mcp.ToolHandler {
 			},
 			"message": fmt.Sprintf("Project '%s' created successfully", project.Name),
 		}
-		
+
 		// Add team if present
 		if len(project.Team) > 0 {
 			response["project"].(map[string]interface{})["team"] = project.Team
 		}
-		
+
 		return response, nil
 	}
 }

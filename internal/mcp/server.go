@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"sync"
 
-	"github.com/analyst/pcf-mcp/internal/config"
+	"github.com/aRustyDev/pcf-mcp/internal/config"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )
@@ -18,19 +18,19 @@ import (
 type Server struct {
 	// config holds the server configuration
 	config config.ServerConfig
-	
+
 	// mcpServer is the underlying MCP server implementation
 	mcpServer *server.MCPServer
-	
+
 	// tools stores registered MCP tools
 	tools map[string]Tool
-	
+
 	// toolsMutex protects concurrent access to tools map
 	toolsMutex sync.RWMutex
-	
+
 	// metrics for observability
 	metrics interface{} // Will be *observability.Metrics but avoiding import cycle
-	
+
 	// logger for server operations
 	// Will be added when we integrate logging
 }
@@ -39,13 +39,13 @@ type Server struct {
 type Tool struct {
 	// Name is the unique identifier for the tool
 	Name string
-	
+
 	// Description explains what the tool does
 	Description string
-	
+
 	// InputSchema defines the expected parameters using JSON Schema
 	InputSchema map[string]interface{}
-	
+
 	// Handler is the function that executes the tool logic
 	Handler ToolHandler
 }
@@ -57,10 +57,10 @@ type ToolHandler func(ctx context.Context, params map[string]interface{}) (inter
 type Capabilities struct {
 	// Tools indicates if the server supports tool execution
 	Tools bool
-	
+
 	// Resources indicates if the server supports resource access
 	Resources bool
-	
+
 	// Prompts indicates if the server supports prompt templates
 	Prompts bool
 }
@@ -77,16 +77,16 @@ func NewServer(cfg config.ServerConfig) (*Server, error) {
 	if cfg.Transport != "stdio" && cfg.Transport != "http" {
 		return nil, fmt.Errorf("invalid transport type: %s (must be 'stdio' or 'http')", cfg.Transport)
 	}
-	
+
 	// Create MCP server
 	mcpServer := server.NewMCPServer("pcf-mcp", Version)
-	
+
 	s := &Server{
 		config:    cfg,
 		tools:     make(map[string]Tool),
 		mcpServer: mcpServer,
 	}
-	
+
 	return s, nil
 }
 
@@ -115,24 +115,24 @@ func (s *Server) RegisterTool(tool Tool) error {
 	if err := s.validateTool(tool); err != nil {
 		return fmt.Errorf("tool validation failed: %w", err)
 	}
-	
+
 	s.toolsMutex.Lock()
 	defer s.toolsMutex.Unlock()
-	
+
 	// Check for duplicate
 	if _, exists := s.tools[tool.Name]; exists {
 		return fmt.Errorf("tool '%s' is already registered", tool.Name)
 	}
-	
+
 	// Register the tool internally
 	s.tools[tool.Name] = tool
-	
+
 	// Create MCP tool definition
 	mcpTool := mcp.Tool{
 		Name:        tool.Name,
 		Description: tool.Description,
 	}
-	
+
 	// Add input schema if provided
 	if tool.InputSchema != nil {
 		// Convert our InputSchema to MCP's ToolInputSchema
@@ -141,7 +141,7 @@ func (s *Server) RegisterTool(tool Tool) error {
 			Properties: tool.InputSchema,
 		}
 	}
-	
+
 	// Add tool to MCP server with handler
 	s.mcpServer.AddTool(mcpTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Use ExecuteToolWithMetrics to track metrics
@@ -149,7 +149,7 @@ func (s *Server) RegisterTool(tool Tool) error {
 		if err != nil {
 			return nil, err
 		}
-		
+
 		// Convert result to CallToolResult
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{
@@ -160,7 +160,7 @@ func (s *Server) RegisterTool(tool Tool) error {
 			},
 		}, nil
 	})
-	
+
 	return nil
 }
 
@@ -170,17 +170,17 @@ func (s *Server) validateTool(tool Tool) error {
 	if tool.Name == "" {
 		return fmt.Errorf("tool name is required")
 	}
-	
+
 	// Validate name format
 	if !toolNameRegex.MatchString(tool.Name) {
 		return fmt.Errorf("tool name must contain only alphanumeric characters, underscores, and hyphens")
 	}
-	
+
 	// Check handler
 	if tool.Handler == nil {
 		return fmt.Errorf("tool handler is required")
 	}
-	
+
 	return nil
 }
 
@@ -188,12 +188,12 @@ func (s *Server) validateTool(tool Tool) error {
 func (s *Server) ListTools() []Tool {
 	s.toolsMutex.RLock()
 	defer s.toolsMutex.RUnlock()
-	
+
 	tools := make([]Tool, 0, len(s.tools))
 	for _, tool := range s.tools {
 		tools = append(tools, tool)
 	}
-	
+
 	return tools
 }
 
@@ -202,11 +202,11 @@ func (s *Server) ExecuteTool(ctx context.Context, name string, params map[string
 	s.toolsMutex.RLock()
 	tool, exists := s.tools[name]
 	s.toolsMutex.RUnlock()
-	
+
 	if !exists {
 		return nil, fmt.Errorf("tool '%s' not found", name)
 	}
-	
+
 	// Execute the tool handler
 	return tool.Handler(ctx, params)
 }

@@ -12,7 +12,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/analyst/pcf-mcp/internal/config"
+	"github.com/aRustyDev/pcf-mcp/internal/config"
 )
 
 // contextKey is a custom type for context keys to avoid collisions
@@ -122,7 +122,7 @@ func (lm *LoggerMiddleware) With(fields ...any) *LoggerMiddleware {
 	newFields := make([]any, len(lm.fields)+len(fields))
 	copy(newFields, lm.fields)
 	copy(newFields[len(lm.fields):], fields)
-	
+
 	return &LoggerMiddleware{
 		logger: lm.logger,
 		fields: newFields,
@@ -158,34 +158,34 @@ func (lm *LoggerMiddleware) Logger() *slog.Logger {
 const (
 	// FieldRequestID is the key for request ID in logs
 	FieldRequestID = "request_id"
-	
+
 	// FieldUserID is the key for user ID in logs
 	FieldUserID = "user_id"
-	
+
 	// FieldMethod is the key for HTTP method in logs
 	FieldMethod = "method"
-	
+
 	// FieldPath is the key for request path in logs
 	FieldPath = "path"
-	
+
 	// FieldStatus is the key for response status in logs
 	FieldStatus = "status"
-	
+
 	// FieldDuration is the key for request duration in logs
 	FieldDuration = "duration_ms"
-	
+
 	// FieldError is the key for error details in logs
 	FieldError = "error"
-	
+
 	// FieldTool is the key for MCP tool name in logs
 	FieldTool = "tool"
-	
+
 	// FieldProject is the key for PCF project ID in logs
 	FieldProject = "project_id"
-	
+
 	// FieldHost is the key for target host in logs
 	FieldHost = "host"
-	
+
 	// FieldComponent is the key for component name in logs
 	FieldComponent = "component"
 )
@@ -213,7 +213,7 @@ func LogResponse(logger *slog.Logger, method, path string, status int, duration 
 		FieldStatus, status,
 		FieldDuration, duration,
 	}, fields...)
-	
+
 	// Choose log level based on status code
 	switch {
 	case status >= 500:

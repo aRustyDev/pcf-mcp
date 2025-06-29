@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/analyst/pcf-mcp/internal/config"
+	"github.com/aRustyDev/pcf-mcp/internal/config"
 )
 
 // TestNewServer tests the creation of a new MCP server
@@ -47,7 +47,7 @@ func TestServerCapabilities(t *testing.T) {
 	}
 
 	capabilities := server.Capabilities()
-	
+
 	// Check that tools capability is enabled
 	if !capabilities.Tools {
 		t.Error("Server should have tools capability enabled")
@@ -224,7 +224,7 @@ func TestExecuteNonExistentTool(t *testing.T) {
 
 	ctx := context.Background()
 	_, err = server.ExecuteTool(ctx, "non_existent", map[string]interface{}{})
-	
+
 	if err == nil {
 		t.Error("Expected error when executing non-existent tool")
 	}

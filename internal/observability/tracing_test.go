@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/analyst/pcf-mcp/internal/config"
+	"github.com/aRustyDev/pcf-mcp/internal/config"
 	"go.opentelemetry.io/otel"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
@@ -80,18 +80,18 @@ func TestInitTracing(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			shutdown, err := InitTracing(tt.config)
-			
+
 			if tt.expectErr {
 				if err == nil {
 					t.Error("Expected error but got none")
 				}
 				return
 			}
-			
+
 			if err != nil {
 				t.Fatalf("Unexpected error: %v", err)
 			}
-			
+
 			// Cleanup
 			if shutdown != nil {
 				shutdown(context.Background())
@@ -109,19 +109,19 @@ func TestTraceProvider(t *testing.T) {
 		SamplingRate: 1.0,
 		ServiceName:  "test-provider",
 	}
-	
+
 	shutdown, err := InitTracing(cfg)
 	if err != nil {
 		t.Fatalf("Failed to initialize tracing: %v", err)
 	}
 	defer shutdown(context.Background())
-	
+
 	// Get global tracer
 	tracer := otel.Tracer("test")
 	if tracer == nil {
 		t.Error("Global tracer should not be nil")
 	}
-	
+
 	// Create a span
 	ctx := context.Background()
 	_, span := tracer.Start(ctx, "test-span")
@@ -140,33 +140,33 @@ func TestStartSpan(t *testing.T) {
 		SamplingRate: 1.0,
 		ServiceName:  "test-span-service",
 	}
-	
+
 	shutdown, err := InitTracing(cfg)
 	if err != nil {
 		t.Fatalf("Failed to initialize tracing: %v", err)
 	}
 	defer shutdown(context.Background())
-	
+
 	// Test starting a span
 	ctx := context.Background()
 	ctx, span := StartSpan(ctx, "test-operation")
-	
+
 	if span == nil {
 		t.Fatal("StartSpan returned nil span")
 	}
-	
+
 	// Verify span is recording
 	if !span.IsRecording() {
 		t.Error("Span should be recording")
 	}
-	
+
 	// Test span attributes
 	span.SetAttributes(
 		StringAttribute("key1", "value1"),
 		IntAttribute("key2", 42),
 		BoolAttribute("key3", true),
 	)
-	
+
 	// End span
 	span.End()
 }
@@ -180,24 +180,24 @@ func TestSpanFromContext(t *testing.T) {
 		SamplingRate: 1.0,
 		ServiceName:  "test-context-service",
 	}
-	
+
 	shutdown, err := InitTracing(cfg)
 	if err != nil {
 		t.Fatalf("Failed to initialize tracing: %v", err)
 	}
 	defer shutdown(context.Background())
-	
+
 	// Create context with span
 	ctx := context.Background()
 	ctx, span := StartSpan(ctx, "parent-span")
 	defer span.End()
-	
+
 	// Extract span from context
 	extractedSpan := SpanFromContext(ctx)
 	if extractedSpan == nil {
 		t.Fatal("Failed to extract span from context")
 	}
-	
+
 	// Verify it's the same span context by checking trace ID
 	if span.SpanContext().TraceID() != extractedSpan.SpanContext().TraceID() {
 		t.Error("Extracted span trace ID doesn't match original")
@@ -213,21 +213,21 @@ func TestRecordError(t *testing.T) {
 		SamplingRate: 1.0,
 		ServiceName:  "test-error-service",
 	}
-	
+
 	shutdown, err := InitTracing(cfg)
 	if err != nil {
 		t.Fatalf("Failed to initialize tracing: %v", err)
 	}
 	defer shutdown(context.Background())
-	
+
 	// Create span
 	ctx := context.Background()
 	ctx, span := StartSpan(ctx, "error-operation")
-	
+
 	// Record an error
 	testErr := errors.New("test error")
 	RecordError(span, testErr)
-	
+
 	// End span
 	span.End()
 }
@@ -241,31 +241,31 @@ func TestHTTPCarrier(t *testing.T) {
 		SamplingRate: 1.0,
 		ServiceName:  "test-propagation-service",
 	}
-	
+
 	shutdown, err := InitTracing(cfg)
 	if err != nil {
 		t.Fatalf("Failed to initialize tracing: %v", err)
 	}
 	defer shutdown(context.Background())
-	
+
 	// Create span
 	ctx := context.Background()
 	ctx, span := StartSpan(ctx, "http-operation")
 	defer span.End()
-	
+
 	// Test injecting into HTTP headers
 	headers := make(map[string]string)
 	InjectHTTPHeaders(ctx, headers)
-	
+
 	// Verify headers were added
 	if len(headers) == 0 {
 		t.Error("No headers were injected")
 	}
-	
+
 	// Test extracting from HTTP headers
 	newCtx := ExtractHTTPHeaders(context.Background(), headers)
 	newSpan := SpanFromContext(newCtx)
-	
+
 	if newSpan == nil {
 		t.Error("Failed to extract span from headers")
 	}
@@ -288,31 +288,31 @@ func (m *MockExporter) Shutdown(ctx context.Context) error {
 // TestCustomExporter tests using a custom exporter
 func TestCustomExporter(t *testing.T) {
 	mockExporter := &MockExporter{}
-	
+
 	cfg := config.TracingConfig{
 		Enabled:      true,
 		Exporter:     "custom",
 		SamplingRate: 1.0,
 		ServiceName:  "test-custom-service",
 	}
-	
+
 	// Initialize with custom exporter
 	shutdown, err := InitTracingWithExporter(cfg, mockExporter)
 	if err != nil {
 		t.Fatalf("Failed to initialize tracing: %v", err)
 	}
 	defer shutdown(context.Background())
-	
+
 	// Create and end a span
 	ctx := context.Background()
 	_, span := StartSpan(ctx, "custom-operation")
 	span.End()
-	
+
 	// Force flush to ensure export
 	if tp, ok := otel.GetTracerProvider().(interface{ ForceFlush(context.Context) error }); ok {
 		tp.ForceFlush(context.Background())
 	}
-	
+
 	// Verify span was exported
 	if len(mockExporter.spans) == 0 {
 		t.Error("No spans were exported")

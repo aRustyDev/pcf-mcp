@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/analyst/pcf-mcp/internal/pcf"
+	"github.com/aRustyDev/pcf-mcp/internal/pcf"
 )
 
 // MockAddCredentialClient extends MockPCFClient with AddCredential method
@@ -24,45 +24,45 @@ func (m *MockAddCredentialClient) AddCredential(ctx context.Context, projectID s
 // TestNewAddCredentialTool tests creating a new add credential tool
 func TestNewAddCredentialTool(t *testing.T) {
 	mockClient := &MockAddCredentialClient{}
-	
+
 	tool := NewAddCredentialTool(mockClient)
-	
+
 	if tool.Name != "add_credential" {
 		t.Errorf("Expected tool name 'add_credential', got '%s'", tool.Name)
 	}
-	
+
 	if tool.Description == "" {
 		t.Error("Tool description should not be empty")
 	}
-	
+
 	if tool.Handler == nil {
 		t.Error("Tool handler should not be nil")
 	}
-	
+
 	// Check input schema
 	if tool.InputSchema == nil {
 		t.Error("Tool should have input schema")
 	}
-	
+
 	// Verify required properties
 	props, ok := tool.InputSchema["properties"].(map[string]interface{})
 	if !ok {
 		t.Fatal("Input schema should have properties")
 	}
-	
+
 	requiredProps := []string{"project_id", "type", "username", "value"}
 	for _, prop := range requiredProps {
 		if _, ok := props[prop]; !ok {
 			t.Errorf("Input schema missing '%s' property", prop)
 		}
 	}
-	
+
 	// Check required fields
 	required, ok := tool.InputSchema["required"].([]string)
 	if !ok {
 		t.Fatal("Input schema should have required fields")
 	}
-	
+
 	if len(required) != 4 {
 		t.Errorf("Expected 4 required fields, got %d", len(required))
 	}
@@ -277,7 +277,7 @@ func TestAddCredentialHandler(t *testing.T) {
 			expectError: false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create mock client
@@ -289,7 +289,7 @@ func TestAddCredentialHandler(t *testing.T) {
 						if projectID != expectedProjectID {
 							t.Errorf("Expected project ID '%s', got '%s'", expectedProjectID, projectID)
 						}
-						
+
 						// Verify request structure
 						if req.Type != tt.expectedReq.Type {
 							t.Errorf("Expected type '%s', got '%s'", tt.expectedReq.Type, req.Type)
@@ -310,18 +310,18 @@ func TestAddCredentialHandler(t *testing.T) {
 							t.Errorf("Expected notes '%s', got '%s'", tt.expectedReq.Notes, req.Notes)
 						}
 					}
-					
+
 					return tt.mockResponse, tt.mockError
 				},
 			}
-			
+
 			// Create tool
 			tool := NewAddCredentialTool(mockClient)
-			
+
 			// Execute handler
 			ctx := context.Background()
 			result, err := tool.Handler(ctx, tt.params)
-			
+
 			// Check error expectation
 			if tt.expectError {
 				if err == nil {
@@ -329,29 +329,29 @@ func TestAddCredentialHandler(t *testing.T) {
 				}
 				return
 			}
-			
+
 			if err != nil {
 				t.Fatalf("Unexpected error: %v", err)
 			}
-			
+
 			// Verify result structure
 			resultMap, ok := result.(map[string]interface{})
 			if !ok {
 				t.Fatal("Result should be a map")
 			}
-			
+
 			// Check for credential key
 			credentialData, ok := resultMap["credential"]
 			if !ok {
 				t.Fatal("Result should contain 'credential' key")
 			}
-			
+
 			// Verify credential structure
 			credential, ok := credentialData.(map[string]interface{})
 			if !ok {
 				t.Fatal("Credential should be a map")
 			}
-			
+
 			// Check required fields
 			requiredFields := []string{"id", "project_id", "type", "username"}
 			for _, field := range requiredFields {
@@ -359,14 +359,14 @@ func TestAddCredentialHandler(t *testing.T) {
 					t.Errorf("Credential missing required field: %s", field)
 				}
 			}
-			
+
 			// Value should be redacted
 			if value, ok := credential["value"].(string); ok {
 				if value != "***REDACTED***" {
 					t.Error("Credential value should be redacted in response")
 				}
 			}
-			
+
 			// Check message
 			if message, ok := resultMap["message"].(string); !ok || message == "" {
 				t.Error("Result should contain a non-empty message")

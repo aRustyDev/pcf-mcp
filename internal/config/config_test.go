@@ -11,20 +11,20 @@ import (
 func TestNewConfig(t *testing.T) {
 	// Test that NewConfig returns a valid config with defaults
 	cfg := New()
-	
+
 	if cfg == nil {
 		t.Fatal("NewConfig returned nil")
 	}
-	
+
 	// Test default values
 	if cfg.Server.Host != "0.0.0.0" {
 		t.Errorf("Expected default host '0.0.0.0', got '%s'", cfg.Server.Host)
 	}
-	
+
 	if cfg.Server.Port != 8080 {
 		t.Errorf("Expected default port 8080, got %d", cfg.Server.Port)
 	}
-	
+
 	if cfg.Server.Transport != "stdio" {
 		t.Errorf("Expected default transport 'stdio', got '%s'", cfg.Server.Transport)
 	}
@@ -72,34 +72,34 @@ logging:
 			},
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create temporary config file
 			tmpDir := t.TempDir()
 			configFile := filepath.Join(tmpDir, "config."+tt.format)
-			
-			err := os.WriteFile(configFile, []byte(tt.content), 0644)
+
+			err := os.WriteFile(configFile, []byte(tt.content), 0o644)
 			if err != nil {
 				t.Fatalf("Failed to write test config file: %v", err)
 			}
-			
+
 			// Load configuration
 			cfg := New()
 			err = cfg.LoadFromFile(configFile)
 			if err != nil {
 				t.Fatalf("Failed to load config from file: %v", err)
 			}
-			
+
 			// Verify loaded values
 			if cfg.Server.Host != tt.expected.Server.Host {
 				t.Errorf("Expected host '%s', got '%s'", tt.expected.Server.Host, cfg.Server.Host)
 			}
-			
+
 			if cfg.Server.Port != tt.expected.Server.Port {
 				t.Errorf("Expected port %d, got %d", tt.expected.Server.Port, cfg.Server.Port)
 			}
-			
+
 			if cfg.PCF.URL != tt.expected.PCF.URL {
 				t.Errorf("Expected PCF URL '%s', got '%s'", tt.expected.PCF.URL, cfg.PCF.URL)
 			}
@@ -118,12 +118,12 @@ func TestLoadFromEnvironment(t *testing.T) {
 			os.Setenv(pair[0], pair[1])
 		}
 	}()
-	
+
 	// Set test environment variables
 	testEnvVars := map[string]string{
-		"PCF_MCP_SERVER_HOST":       "192.168.1.1",
-		"PCF_MCP_SERVER_PORT":       "8888",
-		"PCF_MCP_SERVER_TRANSPORT":  "http",
+		"PCF_MCP_SERVER_HOST":      "192.168.1.1",
+		"PCF_MCP_SERVER_PORT":      "8888",
+		"PCF_MCP_SERVER_TRANSPORT": "http",
 		"PCF_MCP_PCF_URL":          "http://test-pcf.local",
 		"PCF_MCP_PCF_API_KEY":      "env-test-key",
 		"PCF_MCP_LOGGING_LEVEL":    "warn",
@@ -133,35 +133,35 @@ func TestLoadFromEnvironment(t *testing.T) {
 		"PCF_MCP_TRACING_ENABLED":  "true",
 		"PCF_MCP_TRACING_EXPORTER": "jaeger",
 	}
-	
+
 	for k, v := range testEnvVars {
 		os.Setenv(k, v)
 	}
-	
+
 	// Load configuration
 	cfg := New()
 	err := cfg.LoadFromEnvironment()
 	if err != nil {
 		t.Fatalf("Failed to load config from environment: %v", err)
 	}
-	
+
 	// Verify loaded values
 	if cfg.Server.Host != "192.168.1.1" {
 		t.Errorf("Expected host '192.168.1.1', got '%s'", cfg.Server.Host)
 	}
-	
+
 	if cfg.Server.Port != 8888 {
 		t.Errorf("Expected port 8888, got %d", cfg.Server.Port)
 	}
-	
+
 	if cfg.PCF.URL != "http://test-pcf.local" {
 		t.Errorf("Expected PCF URL 'http://test-pcf.local', got '%s'", cfg.PCF.URL)
 	}
-	
+
 	if !cfg.Metrics.Enabled {
 		t.Error("Expected metrics to be enabled")
 	}
-	
+
 	if cfg.Metrics.Port != 9999 {
 		t.Errorf("Expected metrics port 9999, got %d", cfg.Metrics.Port)
 	}
@@ -177,26 +177,26 @@ func TestLoadFromCLI(t *testing.T) {
 		"--pcf-api-key", "cli-key",
 		"--log-level", "error",
 	}
-	
+
 	cfg := New()
 	err := cfg.LoadFromCLI(args)
 	if err != nil {
 		t.Fatalf("Failed to load config from CLI: %v", err)
 	}
-	
+
 	// Verify loaded values
 	if cfg.Server.Host != "10.0.0.1" {
 		t.Errorf("Expected host '10.0.0.1', got '%s'", cfg.Server.Host)
 	}
-	
+
 	if cfg.Server.Port != 7777 {
 		t.Errorf("Expected port 7777, got %d", cfg.Server.Port)
 	}
-	
+
 	if cfg.PCF.URL != "http://cli-pcf.test" {
 		t.Errorf("Expected PCF URL 'http://cli-pcf.test', got '%s'", cfg.PCF.URL)
 	}
-	
+
 	if cfg.Logging.Level != "error" {
 		t.Errorf("Expected log level 'error', got '%s'", cfg.Logging.Level)
 	}
@@ -208,7 +208,7 @@ func TestConfigPrecedence(t *testing.T) {
 	// Create config file
 	tmpDir := t.TempDir()
 	configFile := filepath.Join(tmpDir, "config.yaml")
-	
+
 	fileContent := `
 server:
   host: "file-host"
@@ -216,12 +216,12 @@ server:
 logging:
   level: "info"
 `
-	
-	err := os.WriteFile(configFile, []byte(fileContent), 0644)
+
+	err := os.WriteFile(configFile, []byte(fileContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write test config file: %v", err)
 	}
-	
+
 	// Set environment variables
 	os.Setenv("PCF_MCP_SERVER_HOST", "env-host")
 	os.Setenv("PCF_MCP_SERVER_PORT", "2222")
@@ -229,38 +229,38 @@ logging:
 		os.Unsetenv("PCF_MCP_SERVER_HOST")
 		os.Unsetenv("PCF_MCP_SERVER_PORT")
 	}()
-	
+
 	// Load configuration in order
 	cfg := New()
-	
+
 	// Load from file first
 	err = cfg.LoadFromFile(configFile)
 	if err != nil {
 		t.Fatalf("Failed to load config from file: %v", err)
 	}
-	
+
 	// Then environment (should override file)
 	err = cfg.LoadFromEnvironment()
 	if err != nil {
 		t.Fatalf("Failed to load config from environment: %v", err)
 	}
-	
+
 	// Finally CLI (should override everything)
 	args := []string{"--server-host", "cli-host"}
 	err = cfg.LoadFromCLI(args)
 	if err != nil {
 		t.Fatalf("Failed to load config from CLI: %v", err)
 	}
-	
+
 	// Verify precedence
 	if cfg.Server.Host != "cli-host" {
 		t.Errorf("Expected CLI to override with 'cli-host', got '%s'", cfg.Server.Host)
 	}
-	
+
 	if cfg.Server.Port != 2222 {
 		t.Errorf("Expected env to override file with port 2222, got %d", cfg.Server.Port)
 	}
-	
+
 	if cfg.Logging.Level != "info" {
 		t.Errorf("Expected file value 'info' to remain, got '%s'", cfg.Logging.Level)
 	}
@@ -327,7 +327,7 @@ func TestValidate(t *testing.T) {
 			wantErr: true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.config.Validate()

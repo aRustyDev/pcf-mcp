@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/analyst/pcf-mcp/internal/mcp"
-	"github.com/analyst/pcf-mcp/internal/pcf"
+	"github.com/aRustyDev/pcf-mcp/internal/mcp"
+	"github.com/aRustyDev/pcf-mcp/internal/pcf"
 )
 
 // AddCredentialClient defines the interface for adding credentials
@@ -68,17 +68,17 @@ func createAddCredentialHandler(client AddCredentialClient) mcp.ToolHandler {
 		if !ok {
 			return nil, fmt.Errorf("project_id parameter must be a string")
 		}
-		
+
 		if projectID == "" {
 			return nil, fmt.Errorf("project_id cannot be empty")
 		}
-		
+
 		// Extract and validate type
 		credType, ok := params["type"].(string)
 		if !ok {
 			return nil, fmt.Errorf("type parameter must be a string")
 		}
-		
+
 		// Validate credential type
 		validTypes := map[string]bool{
 			"password":    true,
@@ -87,59 +87,59 @@ func createAddCredentialHandler(client AddCredentialClient) mcp.ToolHandler {
 			"token":       true,
 			"certificate": true,
 		}
-		
+
 		if !validTypes[credType] {
 			return nil, fmt.Errorf("invalid credential type: %s. Must be one of: password, hash, key, token, certificate", credType)
 		}
-		
+
 		// Extract and validate username
 		username, ok := params["username"].(string)
 		if !ok {
 			return nil, fmt.Errorf("username parameter must be a string")
 		}
-		
+
 		if username == "" {
 			return nil, fmt.Errorf("username cannot be empty")
 		}
-		
+
 		// Extract and validate value
 		value, ok := params["value"].(string)
 		if !ok {
 			return nil, fmt.Errorf("value parameter must be a string")
 		}
-		
+
 		if value == "" {
 			return nil, fmt.Errorf("credential value cannot be empty")
 		}
-		
+
 		// Create request
 		req := pcf.AddCredentialRequest{
 			Type:     credType,
 			Username: username,
 			Value:    value,
 		}
-		
+
 		// Extract optional host_id
 		if hostID, ok := params["host_id"].(string); ok && hostID != "" {
 			req.HostID = hostID
 		}
-		
+
 		// Extract optional service
 		if service, ok := params["service"].(string); ok && service != "" {
 			req.Service = service
 		}
-		
+
 		// Extract optional notes
 		if notes, ok := params["notes"].(string); ok && notes != "" {
 			req.Notes = notes
 		}
-		
+
 		// Call PCF client to add credential
 		credential, err := client.AddCredential(ctx, projectID, req)
 		if err != nil {
 			return nil, fmt.Errorf("failed to add credential: %w", err)
 		}
-		
+
 		// Build response - always redact the credential value
 		credMap := map[string]interface{}{
 			"id":         credential.ID,
@@ -148,25 +148,25 @@ func createAddCredentialHandler(client AddCredentialClient) mcp.ToolHandler {
 			"username":   credential.Username,
 			"value":      "***REDACTED***", // Never expose the actual value
 		}
-		
+
 		// Add optional fields if present
 		if credential.HostID != "" {
 			credMap["host_id"] = credential.HostID
 		}
-		
+
 		if credential.Service != "" {
 			credMap["service"] = credential.Service
 		}
-		
+
 		if credential.Notes != "" {
 			credMap["notes"] = credential.Notes
 		}
-		
+
 		response := map[string]interface{}{
 			"credential": credMap,
 			"message":    fmt.Sprintf("Credential for user '%s' added successfully to project %s", credential.Username, projectID),
 		}
-		
+
 		return response, nil
 	}
 }

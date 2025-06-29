@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/analyst/pcf-mcp/internal/config"
+	"github.com/aRustyDev/pcf-mcp/internal/config"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -27,16 +27,16 @@ func InitTracing(cfg config.TracingConfig) (func(context.Context) error, error) 
 		// Return no-op shutdown function
 		return func(ctx context.Context) error { return nil }, nil
 	}
-	
+
 	// Validate configuration
 	if cfg.SamplingRate < 0.0 || cfg.SamplingRate > 1.0 {
 		return nil, fmt.Errorf("invalid sampling rate: %f (must be between 0.0 and 1.0)", cfg.SamplingRate)
 	}
-	
+
 	// Create exporter based on configuration
 	var exporter sdktrace.SpanExporter
 	var err error
-	
+
 	switch cfg.Exporter {
 	case "otlp":
 		exporter, err = createOTLPExporter(cfg.Endpoint)
@@ -47,11 +47,11 @@ func InitTracing(cfg config.TracingConfig) (func(context.Context) error, error) 
 	default:
 		return nil, fmt.Errorf("unsupported exporter: %s", cfg.Exporter)
 	}
-	
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to create exporter: %w", err)
 	}
-	
+
 	// Use custom exporter if provided
 	return initTracingWithExporter(cfg, exporter)
 }
@@ -68,7 +68,7 @@ func initTracingWithExporter(cfg config.TracingConfig, exporter sdktrace.SpanExp
 	if serviceName == "" {
 		serviceName = "pcf-mcp"
 	}
-	
+
 	res, err := resource.Merge(
 		resource.Default(),
 		resource.NewWithAttributes(
@@ -81,23 +81,23 @@ func initTracingWithExporter(cfg config.TracingConfig, exporter sdktrace.SpanExp
 	if err != nil {
 		return nil, fmt.Errorf("failed to create resource: %w", err)
 	}
-	
+
 	// Create tracer provider with sampling
 	tp := sdktrace.NewTracerProvider(
 		sdktrace.WithBatcher(exporter),
 		sdktrace.WithResource(res),
 		sdktrace.WithSampler(sdktrace.TraceIDRatioBased(cfg.SamplingRate)),
 	)
-	
+
 	// Set as global tracer provider
 	otel.SetTracerProvider(tp)
-	
+
 	// Set global propagator
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
 		propagation.TraceContext{},
 		propagation.Baggage{},
 	))
-	
+
 	// Return shutdown function
 	return tp.Shutdown, nil
 }
@@ -109,12 +109,12 @@ func createOTLPExporter(endpoint string) (sdktrace.SpanExporter, error) {
 	if u, err := url.Parse(endpoint); err == nil && u.Host != "" {
 		endpoint = u.Host
 	}
-	
+
 	client := otlptracehttp.NewClient(
 		otlptracehttp.WithEndpoint(endpoint),
 		otlptracehttp.WithInsecure(), // TODO: Configure TLS properly for production
 	)
-	
+
 	return otlptrace.New(context.Background(), client)
 }
 
@@ -130,7 +130,7 @@ func createZipkinExporter(endpoint string) (sdktrace.SpanExporter, error) {
 
 // StartSpan starts a new span with the given name
 func StartSpan(ctx context.Context, name string, opts ...trace.SpanStartOption) (context.Context, trace.Span) {
-	tracer := otel.Tracer("github.com/analyst/pcf-mcp")
+	tracer := otel.Tracer("github.com/aRustyDev/pcf-mcp")
 	return tracer.Start(ctx, name, opts...)
 }
 
@@ -183,12 +183,12 @@ func TracedHandler(name string, handler func(context.Context) error) func(contex
 	return func(ctx context.Context) error {
 		ctx, span := StartSpan(ctx, name)
 		defer span.End()
-		
+
 		err := handler(ctx)
 		if err != nil {
 			RecordError(span, err)
 		}
-		
+
 		return err
 	}
 }
@@ -197,25 +197,25 @@ func TracedHandler(name string, handler func(context.Context) error) func(contex
 const (
 	// AttributeRequestID is the trace attribute for request ID
 	AttributeRequestID = "request.id"
-	
+
 	// AttributeUserID is the trace attribute for user ID
 	AttributeUserID = "user.id"
-	
+
 	// AttributeToolName is the trace attribute for MCP tool name
 	AttributeToolName = "mcp.tool.name"
-	
+
 	// AttributeProjectID is the trace attribute for PCF project ID
 	AttributeProjectID = "pcf.project.id"
-	
+
 	// AttributeHTTPMethod is the trace attribute for HTTP method
 	AttributeHTTPMethod = "http.method"
-	
+
 	// AttributeHTTPPath is the trace attribute for HTTP path
 	AttributeHTTPPath = "http.path"
-	
+
 	// AttributeHTTPStatus is the trace attribute for HTTP status code
 	AttributeHTTPStatus = "http.status"
-	
+
 	// AttributeErrorType is the trace attribute for error type
 	AttributeErrorType = "error.type"
 )

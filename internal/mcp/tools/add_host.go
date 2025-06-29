@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/analyst/pcf-mcp/internal/mcp"
-	"github.com/analyst/pcf-mcp/internal/pcf"
+	"github.com/aRustyDev/pcf-mcp/internal/mcp"
+	"github.com/aRustyDev/pcf-mcp/internal/pcf"
 )
 
 // AddHostClient defines the interface for adding hosts
@@ -61,44 +61,44 @@ func createAddHostHandler(client AddHostClient) mcp.ToolHandler {
 		if !ok {
 			return nil, fmt.Errorf("project_id parameter must be a string")
 		}
-		
+
 		if projectID == "" {
 			return nil, fmt.Errorf("project_id cannot be empty")
 		}
-		
+
 		// Extract and validate IP address
 		ip, ok := params["ip"].(string)
 		if !ok {
 			return nil, fmt.Errorf("ip parameter must be a string")
 		}
-		
+
 		if ip == "" {
 			return nil, fmt.Errorf("ip address cannot be empty")
 		}
-		
+
 		// Validate IP address format
 		if net.ParseIP(ip) == nil {
 			return nil, fmt.Errorf("invalid IP address format: %s", ip)
 		}
-		
+
 		// Create request
 		req := pcf.CreateHostRequest{
 			IP: ip,
 		}
-		
+
 		// Extract optional hostname
 		if hostname, ok := params["hostname"].(string); ok && hostname != "" {
 			req.Hostname = hostname
 		}
-		
+
 		// Extract optional OS
 		if os, ok := params["os"].(string); ok && os != "" {
 			req.OS = os
 		}
-		
+
 		// Extract optional notes
 		// Note: CreateHostRequest doesn't have a Notes field, so we'll ignore it
-		
+
 		// Extract optional services
 		if servicesRaw, ok := params["services"]; ok {
 			// Handle different types that might come from JSON
@@ -120,13 +120,13 @@ func createAddHostHandler(client AddHostClient) mcp.ToolHandler {
 				return nil, fmt.Errorf("services parameter must be an array of strings")
 			}
 		}
-		
+
 		// Call PCF client to add host
 		host, err := client.AddHost(ctx, projectID, req)
 		if err != nil {
 			return nil, fmt.Errorf("failed to add host: %w", err)
 		}
-		
+
 		// Build response
 		hostMap := map[string]interface{}{
 			"id":         host.ID,
@@ -134,25 +134,25 @@ func createAddHostHandler(client AddHostClient) mcp.ToolHandler {
 			"ip":         host.IP,
 			"status":     host.Status,
 		}
-		
+
 		// Add optional fields if present
 		if host.Hostname != "" {
 			hostMap["hostname"] = host.Hostname
 		}
-		
+
 		if host.OS != "" {
 			hostMap["os"] = host.OS
 		}
-		
+
 		if len(host.Services) > 0 {
 			hostMap["services"] = host.Services
 		}
-		
+
 		response := map[string]interface{}{
 			"host":    hostMap,
 			"message": fmt.Sprintf("Host %s added successfully to project %s", host.IP, projectID),
 		}
-		
+
 		return response, nil
 	}
 }

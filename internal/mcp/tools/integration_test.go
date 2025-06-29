@@ -4,22 +4,22 @@ import (
 	"context"
 	"testing"
 
-	"github.com/analyst/pcf-mcp/internal/config"
-	"github.com/analyst/pcf-mcp/internal/mcp"
-	"github.com/analyst/pcf-mcp/internal/pcf"
+	"github.com/aRustyDev/pcf-mcp/internal/config"
+	"github.com/aRustyDev/pcf-mcp/internal/mcp"
+	"github.com/aRustyDev/pcf-mcp/internal/pcf"
 )
 
 // MockFullPCFClient implements all PCF client interfaces for testing
 type MockFullPCFClient struct {
-	ListProjectsFunc     func(ctx context.Context) ([]pcf.Project, error)
-	CreateProjectFunc    func(ctx context.Context, req pcf.CreateProjectRequest) (*pcf.Project, error)
-	ListHostsFunc        func(ctx context.Context, projectID string) ([]pcf.Host, error)
-	AddHostFunc          func(ctx context.Context, projectID string, req pcf.CreateHostRequest) (*pcf.Host, error)
-	ListIssuesFunc       func(ctx context.Context, projectID string) ([]pcf.Issue, error)
-	CreateIssueFunc      func(ctx context.Context, projectID string, req pcf.CreateIssueRequest) (*pcf.Issue, error)
-	ListCredentialsFunc  func(ctx context.Context, projectID string) ([]pcf.Credential, error)
-	AddCredentialFunc    func(ctx context.Context, projectID string, req pcf.AddCredentialRequest) (*pcf.Credential, error)
-	GenerateReportFunc   func(ctx context.Context, projectID string, req pcf.GenerateReportRequest) (*pcf.Report, error)
+	ListProjectsFunc    func(ctx context.Context) ([]pcf.Project, error)
+	CreateProjectFunc   func(ctx context.Context, req pcf.CreateProjectRequest) (*pcf.Project, error)
+	ListHostsFunc       func(ctx context.Context, projectID string) ([]pcf.Host, error)
+	AddHostFunc         func(ctx context.Context, projectID string, req pcf.CreateHostRequest) (*pcf.Host, error)
+	ListIssuesFunc      func(ctx context.Context, projectID string) ([]pcf.Issue, error)
+	CreateIssueFunc     func(ctx context.Context, projectID string, req pcf.CreateIssueRequest) (*pcf.Issue, error)
+	ListCredentialsFunc func(ctx context.Context, projectID string) ([]pcf.Credential, error)
+	AddCredentialFunc   func(ctx context.Context, projectID string, req pcf.AddCredentialRequest) (*pcf.Credential, error)
+	GenerateReportFunc  func(ctx context.Context, projectID string, req pcf.GenerateReportRequest) (*pcf.Report, error)
 }
 
 func (m *MockFullPCFClient) ListProjects(ctx context.Context) ([]pcf.Project, error) {
@@ -91,12 +91,12 @@ func TestRegisterAllTools(t *testing.T) {
 	cfg := config.ServerConfig{
 		Transport: "stdio",
 	}
-	
+
 	server, err := mcp.NewServer(cfg)
 	if err != nil {
 		t.Fatalf("Failed to create server: %v", err)
 	}
-	
+
 	// Create mock PCF client with all required methods
 	mockClient := &MockFullPCFClient{
 		ListProjectsFunc: func(ctx context.Context) ([]pcf.Project, error) {
@@ -116,21 +116,21 @@ func TestRegisterAllTools(t *testing.T) {
 			}, nil
 		},
 	}
-	
+
 	// Register all tools
 	err = RegisterAllTools(server, mockClient)
 	if err != nil {
 		t.Fatalf("Failed to register tools: %v", err)
 	}
-	
+
 	// Verify tools are registered
 	tools := server.ListTools()
-	
+
 	// Check that we have at least one tool
 	if len(tools) == 0 {
 		t.Error("No tools were registered")
 	}
-	
+
 	// Find list_projects tool
 	found := false
 	for _, tool := range tools {
@@ -139,24 +139,24 @@ func TestRegisterAllTools(t *testing.T) {
 			break
 		}
 	}
-	
+
 	if !found {
 		t.Error("list_projects tool was not registered")
 	}
-	
+
 	// Test executing the tool
 	ctx := context.Background()
 	result, err := server.ExecuteTool(ctx, "list_projects", map[string]interface{}{})
 	if err != nil {
 		t.Fatalf("Failed to execute list_projects tool: %v", err)
 	}
-	
+
 	// Verify result
 	resultMap, ok := result.(map[string]interface{})
 	if !ok {
 		t.Fatal("Result should be a map")
 	}
-	
+
 	if _, ok := resultMap["projects"]; !ok {
 		t.Error("Result should contain 'projects' key")
 	}

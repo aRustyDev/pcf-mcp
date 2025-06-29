@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/analyst/pcf-mcp/internal/pcf"
+	"github.com/aRustyDev/pcf-mcp/internal/pcf"
 )
 
 // MockPCFClient is a mock implementation of the PCF client for testing
@@ -25,26 +25,26 @@ func (m *MockPCFClient) ListProjects(ctx context.Context) ([]pcf.Project, error)
 // TestNewListProjectsTool tests creating a new list projects tool
 func TestNewListProjectsTool(t *testing.T) {
 	mockClient := &MockPCFClient{}
-	
+
 	tool := NewListProjectsTool(mockClient)
-	
+
 	if tool.Name != "list_projects" {
 		t.Errorf("Expected tool name 'list_projects', got '%s'", tool.Name)
 	}
-	
+
 	if tool.Description == "" {
 		t.Error("Tool description should not be empty")
 	}
-	
+
 	if tool.Handler == nil {
 		t.Error("Tool handler should not be nil")
 	}
-	
+
 	// Check input schema
 	if tool.InputSchema == nil {
 		t.Error("Tool should have input schema")
 	}
-	
+
 	// Verify schema structure
 	schemaType, ok := tool.InputSchema["type"].(string)
 	if !ok || schemaType != "object" {
@@ -55,12 +55,12 @@ func TestNewListProjectsTool(t *testing.T) {
 // TestListProjectsHandler tests the list projects handler functionality
 func TestListProjectsHandler(t *testing.T) {
 	tests := []struct {
-		name           string
-		mockResponse   []pcf.Project
-		mockError      error
-		params         map[string]interface{}
-		expectError    bool
-		expectedCount  int
+		name          string
+		mockResponse  []pcf.Project
+		mockError     error
+		params        map[string]interface{}
+		expectError   bool
+		expectedCount int
 	}{
 		{
 			name: "Successful list with projects",
@@ -120,7 +120,7 @@ func TestListProjectsHandler(t *testing.T) {
 			expectedCount: 1,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create mock client
@@ -129,14 +129,14 @@ func TestListProjectsHandler(t *testing.T) {
 					return tt.mockResponse, tt.mockError
 				},
 			}
-			
+
 			// Create tool
 			tool := NewListProjectsTool(mockClient)
-			
+
 			// Execute handler
 			ctx := context.Background()
 			result, err := tool.Handler(ctx, tt.params)
-			
+
 			// Check error expectation
 			if tt.expectError {
 				if err == nil {
@@ -144,38 +144,38 @@ func TestListProjectsHandler(t *testing.T) {
 				}
 				return
 			}
-			
+
 			if err != nil {
 				t.Fatalf("Unexpected error: %v", err)
 			}
-			
+
 			// Verify result structure
 			resultMap, ok := result.(map[string]interface{})
 			if !ok {
 				t.Fatal("Result should be a map")
 			}
-			
+
 			// Check for projects key
 			projectsData, ok := resultMap["projects"]
 			if !ok {
 				t.Fatal("Result should contain 'projects' key")
 			}
-			
+
 			// Verify projects array
 			projects, ok := projectsData.([]map[string]interface{})
 			if !ok {
 				t.Fatal("Projects should be an array of maps")
 			}
-			
+
 			// Check count
 			if len(projects) != tt.expectedCount {
 				t.Errorf("Expected %d projects, got %d", tt.expectedCount, len(projects))
 			}
-			
+
 			// Verify project structure if we have projects
 			if len(projects) > 0 {
 				firstProject := projects[0]
-				
+
 				// Check required fields
 				requiredFields := []string{"id", "name", "description", "status"}
 				for _, field := range requiredFields {
@@ -184,7 +184,7 @@ func TestListProjectsHandler(t *testing.T) {
 					}
 				}
 			}
-			
+
 			// Check total count
 			if totalCount, ok := resultMap["total_count"].(int); ok {
 				if totalCount != tt.expectedCount {
@@ -204,10 +204,10 @@ func TestListProjectsInputValidation(t *testing.T) {
 			return []pcf.Project{}, nil
 		},
 	}
-	
+
 	tool := NewListProjectsTool(mockClient)
 	ctx := context.Background()
-	
+
 	tests := []struct {
 		name        string
 		params      map[string]interface{}
@@ -240,15 +240,15 @@ func TestListProjectsInputValidation(t *testing.T) {
 			expectError: false, // Should ignore unknown params
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := tool.Handler(ctx, tt.params)
-			
+
 			if tt.expectError && err == nil {
 				t.Error("Expected validation error but got none")
 			}
-			
+
 			if !tt.expectError && err != nil {
 				t.Errorf("Unexpected error: %v", err)
 			}
@@ -261,7 +261,7 @@ func TestListProjectsContextCancellation(t *testing.T) {
 	// Create a context that's already cancelled
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	
+
 	mockClient := &MockPCFClient{
 		ListProjectsFunc: func(ctx context.Context) ([]pcf.Project, error) {
 			// Check if context is cancelled
@@ -273,9 +273,9 @@ func TestListProjectsContextCancellation(t *testing.T) {
 			}
 		},
 	}
-	
+
 	tool := NewListProjectsTool(mockClient)
-	
+
 	_, err := tool.Handler(ctx, map[string]interface{}{})
 	if err == nil {
 		t.Error("Expected context cancellation error")

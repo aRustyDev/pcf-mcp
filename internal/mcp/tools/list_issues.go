@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/analyst/pcf-mcp/internal/mcp"
-	"github.com/analyst/pcf-mcp/internal/pcf"
+	"github.com/aRustyDev/pcf-mcp/internal/mcp"
+	"github.com/aRustyDev/pcf-mcp/internal/pcf"
 )
 
 // ListIssuesClient defines the interface for listing issues
@@ -55,33 +55,33 @@ func createListIssuesHandler(client ListIssuesClient) mcp.ToolHandler {
 		if !ok {
 			return nil, fmt.Errorf("project_id parameter must be a string")
 		}
-		
+
 		if projectID == "" {
 			return nil, fmt.Errorf("project_id cannot be empty")
 		}
-		
+
 		// Extract optional filters
 		severityFilter := ""
 		if severity, ok := params["severity"].(string); ok {
 			severityFilter = severity
 		}
-		
+
 		statusFilter := ""
 		if status, ok := params["status"].(string); ok {
 			statusFilter = status
 		}
-		
+
 		hostIDFilter := ""
 		if hostID, ok := params["host_id"].(string); ok {
 			hostIDFilter = hostID
 		}
-		
+
 		// Call PCF client to list issues
 		issues, err := client.ListIssues(ctx, projectID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to list issues: %w", err)
 		}
-		
+
 		// Convert issues to response format and apply filters
 		var issueList []map[string]interface{}
 		severityCount := map[string]int{
@@ -91,28 +91,28 @@ func createListIssuesHandler(client ListIssuesClient) mcp.ToolHandler {
 			"Low":      0,
 			"Info":     0,
 		}
-		
+
 		for _, issue := range issues {
 			// Count issues by severity (before filtering)
 			if _, ok := severityCount[issue.Severity]; ok {
 				severityCount[issue.Severity]++
 			}
-			
+
 			// Apply severity filter if provided
 			if severityFilter != "" && issue.Severity != severityFilter {
 				continue
 			}
-			
+
 			// Apply status filter if provided
 			if statusFilter != "" && issue.Status != statusFilter {
 				continue
 			}
-			
+
 			// Apply host ID filter if provided
 			if hostIDFilter != "" && issue.HostID != hostIDFilter {
 				continue
 			}
-			
+
 			issueMap := map[string]interface{}{
 				"id":          issue.ID,
 				"project_id":  issue.ProjectID,
@@ -121,23 +121,23 @@ func createListIssuesHandler(client ListIssuesClient) mcp.ToolHandler {
 				"severity":    issue.Severity,
 				"status":      issue.Status,
 			}
-			
+
 			// Add optional fields if present
 			if issue.HostID != "" {
 				issueMap["host_id"] = issue.HostID
 			}
-			
+
 			if issue.CVE != "" {
 				issueMap["cve"] = issue.CVE
 			}
-			
+
 			if issue.CVSS > 0 {
 				issueMap["cvss"] = issue.CVSS
 			}
-			
+
 			issueList = append(issueList, issueMap)
 		}
-		
+
 		// Build response
 		response := map[string]interface{}{
 			"issues":             issueList,
@@ -145,7 +145,7 @@ func createListIssuesHandler(client ListIssuesClient) mcp.ToolHandler {
 			"project_id":         projectID,
 			"severity_breakdown": severityCount,
 		}
-		
+
 		// Add filter information if filters were applied
 		if severityFilter != "" || statusFilter != "" || hostIDFilter != "" {
 			filters := make(map[string]interface{})
@@ -160,7 +160,7 @@ func createListIssuesHandler(client ListIssuesClient) mcp.ToolHandler {
 			}
 			response["filters"] = filters
 		}
-		
+
 		return response, nil
 	}
 }

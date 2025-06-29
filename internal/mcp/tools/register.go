@@ -3,7 +3,7 @@ package tools
 import (
 	"fmt"
 
-	"github.com/analyst/pcf-mcp/internal/mcp"
+	"github.com/aRustyDev/pcf-mcp/internal/mcp"
 )
 
 // FullPCFClient defines the complete interface for all PCF operations
@@ -33,13 +33,13 @@ func RegisterAllTools(server *mcp.Server, pcfClient FullPCFClient) error {
 		NewAddCredentialTool(pcfClient),
 		NewGenerateReportTool(pcfClient),
 	}
-	
+
 	// Register each tool
 	for _, tool := range tools {
 		if err := server.RegisterTool(tool); err != nil {
 			return fmt.Errorf("failed to register tool '%s': %w", tool.Name, err)
 		}
 	}
-	
+
 	return nil
 }

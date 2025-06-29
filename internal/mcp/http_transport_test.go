@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/analyst/pcf-mcp/internal/config"
+	"github.com/aRustyDev/pcf-mcp/internal/config"
 )
 
 // TestHTTPTransport tests the HTTP transport functionality
@@ -22,12 +22,12 @@ func TestHTTPTransport(t *testing.T) {
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 30 * time.Second,
 	}
-	
+
 	server, err := NewServer(cfg)
 	if err != nil {
 		t.Fatalf("Failed to create server: %v", err)
 	}
-	
+
 	// Register a test tool
 	testTool := Tool{
 		Name:        "test_tool",
@@ -47,19 +47,19 @@ func TestHTTPTransport(t *testing.T) {
 			}, nil
 		},
 	}
-	
+
 	err = server.RegisterTool(testTool)
 	if err != nil {
 		t.Fatalf("Failed to register tool: %v", err)
 	}
-	
+
 	// Create HTTP handler
 	handler := server.HTTPHandler()
-	
+
 	// Create test server
 	ts := httptest.NewServer(handler)
 	defer ts.Close()
-	
+
 	// Test cases
 	tests := []struct {
 		name           string
@@ -177,7 +177,7 @@ func TestHTTPTransport(t *testing.T) {
 			expectedStatus: http.StatusNotFound,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var bodyReader *bytes.Reader
@@ -190,27 +190,27 @@ func TestHTTPTransport(t *testing.T) {
 			} else {
 				bodyReader = bytes.NewReader([]byte{})
 			}
-			
+
 			req, err := http.NewRequest(tt.method, ts.URL+tt.path, bodyReader)
 			if err != nil {
 				t.Fatalf("Failed to create request: %v", err)
 			}
-			
+
 			if tt.body != nil {
 				req.Header.Set("Content-Type", "application/json")
 			}
-			
+
 			client := &http.Client{Timeout: 5 * time.Second}
 			resp, err := client.Do(req)
 			if err != nil {
 				t.Fatalf("Failed to send request: %v", err)
 			}
 			defer resp.Body.Close()
-			
+
 			if resp.StatusCode != tt.expectedStatus {
 				t.Errorf("Expected status %d, got %d", tt.expectedStatus, resp.StatusCode)
 			}
-			
+
 			if tt.validateBody != nil {
 				var body bytes.Buffer
 				_, err := body.ReadFrom(resp.Body)
@@ -232,44 +232,44 @@ func TestHTTPTransportCORS(t *testing.T) {
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 30 * time.Second,
 	}
-	
+
 	server, err := NewServer(cfg)
 	if err != nil {
 		t.Fatalf("Failed to create server: %v", err)
 	}
-	
+
 	handler := server.HTTPHandler()
 	ts := httptest.NewServer(handler)
 	defer ts.Close()
-	
+
 	// Test preflight request
 	req, err := http.NewRequest("OPTIONS", ts.URL+"/tools", nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
-	
+
 	req.Header.Set("Origin", "http://localhost:3000")
 	req.Header.Set("Access-Control-Request-Method", "POST")
 	req.Header.Set("Access-Control-Request-Headers", "Content-Type")
-	
+
 	client := &http.Client{Timeout: 5 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		t.Fatalf("Failed to send request: %v", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status 200, got %d", resp.StatusCode)
 	}
-	
+
 	// Check CORS headers
 	expectedHeaders := map[string]string{
 		"Access-Control-Allow-Origin":  "*",
 		"Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 		"Access-Control-Allow-Headers": "Content-Type, Authorization",
 	}
-	
+
 	for header, expected := range expectedHeaders {
 		actual := resp.Header.Get(header)
 		if actual != expected {
@@ -289,16 +289,16 @@ func TestHTTPTransportAuthentication(t *testing.T) {
 		AuthRequired: true,
 		AuthToken:    "test-token-123",
 	}
-	
+
 	server, err := NewServer(cfg)
 	if err != nil {
 		t.Fatalf("Failed to create server: %v", err)
 	}
-	
+
 	handler := server.HTTPHandler()
 	ts := httptest.NewServer(handler)
 	defer ts.Close()
-	
+
 	tests := []struct {
 		name           string
 		path           string
@@ -342,25 +342,25 @@ func TestHTTPTransportAuthentication(t *testing.T) {
 			expectedStatus: http.StatusOK,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			req, err := http.NewRequest("GET", ts.URL+tt.path, nil)
 			if err != nil {
 				t.Fatalf("Failed to create request: %v", err)
 			}
-			
+
 			if tt.authHeader != "" {
 				req.Header.Set("Authorization", tt.authHeader)
 			}
-			
+
 			client := &http.Client{Timeout: 5 * time.Second}
 			resp, err := client.Do(req)
 			if err != nil {
 				t.Fatalf("Failed to send request: %v", err)
 			}
 			defer resp.Body.Close()
-			
+
 			if resp.StatusCode != tt.expectedStatus {
 				t.Errorf("Expected status %d, got %d", tt.expectedStatus, resp.StatusCode)
 			}
@@ -377,12 +377,12 @@ func TestHTTPTransportMetrics(t *testing.T) {
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 30 * time.Second,
 	}
-	
+
 	server, err := NewServer(cfg)
 	if err != nil {
 		t.Fatalf("Failed to create server: %v", err)
 	}
-	
+
 	// Register a test tool
 	testTool := Tool{
 		Name:        "metrics_test",
@@ -391,16 +391,16 @@ func TestHTTPTransportMetrics(t *testing.T) {
 			return map[string]interface{}{"status": "ok"}, nil
 		},
 	}
-	
+
 	err = server.RegisterTool(testTool)
 	if err != nil {
 		t.Fatalf("Failed to register tool: %v", err)
 	}
-	
+
 	handler := server.HTTPHandler()
 	ts := httptest.NewServer(handler)
 	defer ts.Close()
-	
+
 	// Make several requests
 	client := &http.Client{Timeout: 5 * time.Second}
 	for i := 0; i < 5; i++ {
@@ -409,43 +409,43 @@ func TestHTTPTransportMetrics(t *testing.T) {
 			t.Fatalf("Failed to create request: %v", err)
 		}
 		req.Header.Set("Content-Type", "application/json")
-		
+
 		resp, err := client.Do(req)
 		if err != nil {
 			t.Fatalf("Failed to send request: %v", err)
 		}
 		resp.Body.Close()
 	}
-	
+
 	// Check metrics endpoint
 	req, err := http.NewRequest("GET", ts.URL+"/metrics", nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
-	
+
 	resp, err := client.Do(req)
 	if err != nil {
 		t.Fatalf("Failed to send request: %v", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status 200, got %d", resp.StatusCode)
 	}
-	
+
 	// Verify that metrics are present
 	var body bytes.Buffer
 	_, err = body.ReadFrom(resp.Body)
 	if err != nil {
 		t.Fatalf("Failed to read response body: %v", err)
 	}
-	
+
 	bodyStr := body.String()
 	expectedMetrics := []string{
 		"http_requests_total",
 		"http_request_duration_seconds",
 	}
-	
+
 	for _, metric := range expectedMetrics {
 		if !bytes.Contains([]byte(bodyStr), []byte(metric)) {
 			t.Errorf("Expected metric '%s' not found in response", metric)

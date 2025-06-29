@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/analyst/pcf-mcp/internal/pcf"
+	"github.com/aRustyDev/pcf-mcp/internal/pcf"
 )
 
 // MockListIssuesClient extends MockPCFClient with ListIssues method
@@ -24,42 +24,42 @@ func (m *MockListIssuesClient) ListIssues(ctx context.Context, projectID string)
 // TestNewListIssuesTool tests creating a new list issues tool
 func TestNewListIssuesTool(t *testing.T) {
 	mockClient := &MockListIssuesClient{}
-	
+
 	tool := NewListIssuesTool(mockClient)
-	
+
 	if tool.Name != "list_issues" {
 		t.Errorf("Expected tool name 'list_issues', got '%s'", tool.Name)
 	}
-	
+
 	if tool.Description == "" {
 		t.Error("Tool description should not be empty")
 	}
-	
+
 	if tool.Handler == nil {
 		t.Error("Tool handler should not be nil")
 	}
-	
+
 	// Check input schema
 	if tool.InputSchema == nil {
 		t.Error("Tool should have input schema")
 	}
-	
+
 	// Verify required properties
 	props, ok := tool.InputSchema["properties"].(map[string]interface{})
 	if !ok {
 		t.Fatal("Input schema should have properties")
 	}
-	
+
 	if _, ok := props["project_id"]; !ok {
 		t.Error("Input schema missing 'project_id' property")
 	}
-	
+
 	// Check required fields
 	required, ok := tool.InputSchema["required"].([]string)
 	if !ok {
 		t.Fatal("Input schema should have required fields")
 	}
-	
+
 	if len(required) == 0 || required[0] != "project_id" {
 		t.Error("'project_id' should be a required field")
 	}
@@ -234,7 +234,7 @@ func TestListIssuesHandler(t *testing.T) {
 			expectedCount: 2, // Should include only host-1 issues
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create mock client
@@ -246,14 +246,14 @@ func TestListIssuesHandler(t *testing.T) {
 					return tt.mockResponse, tt.mockError
 				},
 			}
-			
+
 			// Create tool
 			tool := NewListIssuesTool(mockClient)
-			
+
 			// Execute handler
 			ctx := context.Background()
 			result, err := tool.Handler(ctx, tt.params)
-			
+
 			// Check error expectation
 			if tt.expectError {
 				if err == nil {
@@ -261,38 +261,38 @@ func TestListIssuesHandler(t *testing.T) {
 				}
 				return
 			}
-			
+
 			if err != nil {
 				t.Fatalf("Unexpected error: %v", err)
 			}
-			
+
 			// Verify result structure
 			resultMap, ok := result.(map[string]interface{})
 			if !ok {
 				t.Fatal("Result should be a map")
 			}
-			
+
 			// Check for issues key
 			issuesData, ok := resultMap["issues"]
 			if !ok {
 				t.Fatal("Result should contain 'issues' key")
 			}
-			
+
 			// Verify issues array
 			issues, ok := issuesData.([]map[string]interface{})
 			if !ok {
 				t.Fatal("Issues should be an array of maps")
 			}
-			
+
 			// Check count
 			if len(issues) != tt.expectedCount {
 				t.Errorf("Expected %d issues, got %d", tt.expectedCount, len(issues))
 			}
-			
+
 			// Verify issue structure if we have issues
 			if len(issues) > 0 {
 				firstIssue := issues[0]
-				
+
 				// Check required fields
 				requiredFields := []string{"id", "project_id", "title", "severity", "status"}
 				for _, field := range requiredFields {
@@ -301,7 +301,7 @@ func TestListIssuesHandler(t *testing.T) {
 					}
 				}
 			}
-			
+
 			// Check total count
 			if totalCount, ok := resultMap["total_count"].(int); ok {
 				if totalCount != tt.expectedCount {
@@ -310,7 +310,7 @@ func TestListIssuesHandler(t *testing.T) {
 			} else {
 				t.Error("Result should contain 'total_count' as int")
 			}
-			
+
 			// Check severity breakdown if present
 			if severityBreakdown, ok := resultMap["severity_breakdown"].(map[string]interface{}); ok {
 				// Verify it's a map with counts

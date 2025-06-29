@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/analyst/pcf-mcp/internal/pcf"
+	"github.com/aRustyDev/pcf-mcp/internal/pcf"
 )
 
 // MockGenerateReportClient extends MockPCFClient with GenerateReport method
@@ -25,45 +25,45 @@ func (m *MockGenerateReportClient) GenerateReport(ctx context.Context, projectID
 // TestNewGenerateReportTool tests creating a new generate report tool
 func TestNewGenerateReportTool(t *testing.T) {
 	mockClient := &MockGenerateReportClient{}
-	
+
 	tool := NewGenerateReportTool(mockClient)
-	
+
 	if tool.Name != "generate_report" {
 		t.Errorf("Expected tool name 'generate_report', got '%s'", tool.Name)
 	}
-	
+
 	if tool.Description == "" {
 		t.Error("Tool description should not be empty")
 	}
-	
+
 	if tool.Handler == nil {
 		t.Error("Tool handler should not be nil")
 	}
-	
+
 	// Check input schema
 	if tool.InputSchema == nil {
 		t.Error("Tool should have input schema")
 	}
-	
+
 	// Verify required properties
 	props, ok := tool.InputSchema["properties"].(map[string]interface{})
 	if !ok {
 		t.Fatal("Input schema should have properties")
 	}
-	
+
 	requiredProps := []string{"project_id", "format"}
 	for _, prop := range requiredProps {
 		if _, ok := props[prop]; !ok {
 			t.Errorf("Input schema missing '%s' property", prop)
 		}
 	}
-	
+
 	// Check required fields
 	required, ok := tool.InputSchema["required"].([]string)
 	if !ok {
 		t.Fatal("Input schema should have required fields")
 	}
-	
+
 	if len(required) != 2 {
 		t.Errorf("Expected 2 required fields, got %d", len(required))
 	}
@@ -267,7 +267,7 @@ func TestGenerateReportHandler(t *testing.T) {
 			expectError:  true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create mock client
@@ -279,7 +279,7 @@ func TestGenerateReportHandler(t *testing.T) {
 						if projectID != expectedProjectID {
 							t.Errorf("Expected project ID '%s', got '%s'", expectedProjectID, projectID)
 						}
-						
+
 						// Verify request structure
 						if req.Format != tt.expectedReq.Format {
 							t.Errorf("Expected format '%s', got '%s'", tt.expectedReq.Format, req.Format)
@@ -293,24 +293,24 @@ func TestGenerateReportHandler(t *testing.T) {
 						if req.IncludeCredentials != tt.expectedReq.IncludeCredentials {
 							t.Errorf("Expected include_credentials %v, got %v", tt.expectedReq.IncludeCredentials, req.IncludeCredentials)
 						}
-						
+
 						// Check sections array
 						if len(req.Sections) != len(tt.expectedReq.Sections) {
 							t.Errorf("Expected %d sections, got %d", len(tt.expectedReq.Sections), len(req.Sections))
 						}
 					}
-					
+
 					return tt.mockResponse, tt.mockError
 				},
 			}
-			
+
 			// Create tool
 			tool := NewGenerateReportTool(mockClient)
-			
+
 			// Execute handler
 			ctx := context.Background()
 			result, err := tool.Handler(ctx, tt.params)
-			
+
 			// Check error expectation
 			if tt.expectError {
 				if err == nil {
@@ -318,29 +318,29 @@ func TestGenerateReportHandler(t *testing.T) {
 				}
 				return
 			}
-			
+
 			if err != nil {
 				t.Fatalf("Unexpected error: %v", err)
 			}
-			
+
 			// Verify result structure
 			resultMap, ok := result.(map[string]interface{})
 			if !ok {
 				t.Fatal("Result should be a map")
 			}
-			
+
 			// Check for report key
 			reportData, ok := resultMap["report"]
 			if !ok {
 				t.Fatal("Result should contain 'report' key")
 			}
-			
+
 			// Verify report structure
 			report, ok := reportData.(map[string]interface{})
 			if !ok {
 				t.Fatal("Report should be a map")
 			}
-			
+
 			// Check required fields
 			requiredFields := []string{"id", "project_id", "format", "status", "created_at"}
 			for _, field := range requiredFields {
@@ -348,12 +348,12 @@ func TestGenerateReportHandler(t *testing.T) {
 					t.Errorf("Report missing required field: %s", field)
 				}
 			}
-			
+
 			// Check message
 			if message, ok := resultMap["message"].(string); !ok || message == "" {
 				t.Error("Result should contain a non-empty message")
 			}
-			
+
 			// If status is completed, should have URL
 			if status, ok := report["status"].(string); ok && status == "completed" {
 				if _, ok := report["url"]; !ok {

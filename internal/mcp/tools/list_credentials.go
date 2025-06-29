@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/analyst/pcf-mcp/internal/mcp"
-	"github.com/analyst/pcf-mcp/internal/pcf"
+	"github.com/aRustyDev/pcf-mcp/internal/mcp"
+	"github.com/aRustyDev/pcf-mcp/internal/pcf"
 )
 
 // ListCredentialsClient defines the interface for listing credentials
@@ -54,56 +54,56 @@ func createListCredentialsHandler(client ListCredentialsClient) mcp.ToolHandler 
 		if !ok {
 			return nil, fmt.Errorf("project_id parameter must be a string")
 		}
-		
+
 		if projectID == "" {
 			return nil, fmt.Errorf("project_id cannot be empty")
 		}
-		
+
 		// Extract optional filters
 		typeFilter := ""
 		if credType, ok := params["type"].(string); ok {
 			typeFilter = credType
 		}
-		
+
 		hostIDFilter := ""
 		if hostID, ok := params["host_id"].(string); ok {
 			hostIDFilter = hostID
 		}
-		
+
 		serviceFilter := ""
 		if service, ok := params["service"].(string); ok {
 			serviceFilter = service
 		}
-		
+
 		// Call PCF client to list credentials
 		credentials, err := client.ListCredentials(ctx, projectID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to list credentials: %w", err)
 		}
-		
+
 		// Convert credentials to response format and apply filters
 		credentialList := make([]map[string]interface{}, 0)
 		typeCount := make(map[string]int)
-		
+
 		for _, cred := range credentials {
 			// Count by type (before filtering)
 			typeCount[cred.Type]++
-			
+
 			// Apply type filter if provided
 			if typeFilter != "" && cred.Type != typeFilter {
 				continue
 			}
-			
+
 			// Apply host ID filter if provided
 			if hostIDFilter != "" && cred.HostID != hostIDFilter {
 				continue
 			}
-			
+
 			// Apply service filter if provided
 			if serviceFilter != "" && cred.Service != serviceFilter {
 				continue
 			}
-			
+
 			credMap := map[string]interface{}{
 				"id":         cred.ID,
 				"project_id": cred.ProjectID,
@@ -111,23 +111,23 @@ func createListCredentialsHandler(client ListCredentialsClient) mcp.ToolHandler 
 				"username":   cred.Username,
 				"value":      "***REDACTED***", // Always redact credential values
 			}
-			
+
 			// Add optional fields if present
 			if cred.HostID != "" {
 				credMap["host_id"] = cred.HostID
 			}
-			
+
 			if cred.Service != "" {
 				credMap["service"] = cred.Service
 			}
-			
+
 			if cred.Notes != "" {
 				credMap["notes"] = cred.Notes
 			}
-			
+
 			credentialList = append(credentialList, credMap)
 		}
-		
+
 		// Build response
 		response := map[string]interface{}{
 			"credentials":    credentialList,
@@ -135,7 +135,7 @@ func createListCredentialsHandler(client ListCredentialsClient) mcp.ToolHandler 
 			"project_id":     projectID,
 			"type_breakdown": typeCount,
 		}
-		
+
 		// Add filter information if filters were applied
 		if typeFilter != "" || hostIDFilter != "" || serviceFilter != "" {
 			filters := make(map[string]interface{})
@@ -150,7 +150,7 @@ func createListCredentialsHandler(client ListCredentialsClient) mcp.ToolHandler 
 			}
 			response["filters"] = filters
 		}
-		
+
 		return response, nil
 	}
 }

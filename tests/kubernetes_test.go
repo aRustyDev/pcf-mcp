@@ -1,3 +1,4 @@
+//go:build integration
 // +build integration
 
 package tests
@@ -37,7 +38,6 @@ func TestKubernetesManifests(t *testing.T) {
 		}
 		return nil
 	})
-
 	if err != nil {
 		t.Fatalf("Failed to walk kubernetes directory: %v", err)
 	}

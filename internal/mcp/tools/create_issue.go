@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/analyst/pcf-mcp/internal/mcp"
-	"github.com/analyst/pcf-mcp/internal/pcf"
+	"github.com/aRustyDev/pcf-mcp/internal/mcp"
+	"github.com/aRustyDev/pcf-mcp/internal/pcf"
 )
 
 // CreateIssueClient defines the interface for creating issues
@@ -72,37 +72,37 @@ func createCreateIssueHandler(client CreateIssueClient) mcp.ToolHandler {
 		if !ok {
 			return nil, fmt.Errorf("project_id parameter must be a string")
 		}
-		
+
 		if projectID == "" {
 			return nil, fmt.Errorf("project_id cannot be empty")
 		}
-		
+
 		// Extract and validate title
 		title, ok := params["title"].(string)
 		if !ok {
 			return nil, fmt.Errorf("title parameter must be a string")
 		}
-		
+
 		if title == "" {
 			return nil, fmt.Errorf("title cannot be empty")
 		}
-		
+
 		// Extract and validate description
 		description, ok := params["description"].(string)
 		if !ok {
 			return nil, fmt.Errorf("description parameter must be a string")
 		}
-		
+
 		if description == "" {
 			return nil, fmt.Errorf("description cannot be empty")
 		}
-		
+
 		// Extract and validate severity
 		severity, ok := params["severity"].(string)
 		if !ok {
 			return nil, fmt.Errorf("severity parameter must be a string")
 		}
-		
+
 		// Validate severity value
 		validSeverities := map[string]bool{
 			"Critical": true,
@@ -111,28 +111,28 @@ func createCreateIssueHandler(client CreateIssueClient) mcp.ToolHandler {
 			"Low":      true,
 			"Info":     true,
 		}
-		
+
 		if !validSeverities[severity] {
 			return nil, fmt.Errorf("invalid severity value: %s. Must be one of: Critical, High, Medium, Low, Info", severity)
 		}
-		
+
 		// Create request
 		req := pcf.CreateIssueRequest{
 			Title:       title,
 			Description: description,
 			Severity:    severity,
 		}
-		
+
 		// Extract optional host_id
 		if hostID, ok := params["host_id"].(string); ok && hostID != "" {
 			req.HostID = hostID
 		}
-		
+
 		// Extract optional CVE
 		if cve, ok := params["cve"].(string); ok && cve != "" {
 			req.CVE = cve
 		}
-		
+
 		// Extract optional CVSS score
 		if cvssRaw, ok := params["cvss"]; ok {
 			// Handle both float64 and int types
@@ -145,21 +145,21 @@ func createCreateIssueHandler(client CreateIssueClient) mcp.ToolHandler {
 			default:
 				return nil, fmt.Errorf("cvss parameter must be a number")
 			}
-			
+
 			// Validate CVSS range
 			if cvss < 0 || cvss > 10 {
 				return nil, fmt.Errorf("cvss score must be between 0 and 10, got %f", cvss)
 			}
-			
+
 			req.CVSS = cvss
 		}
-		
+
 		// Call PCF client to create issue
 		issue, err := client.CreateIssue(ctx, projectID, req)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create issue: %w", err)
 		}
-		
+
 		// Build response
 		issueMap := map[string]interface{}{
 			"id":          issue.ID,
@@ -169,25 +169,25 @@ func createCreateIssueHandler(client CreateIssueClient) mcp.ToolHandler {
 			"severity":    issue.Severity,
 			"status":      issue.Status,
 		}
-		
+
 		// Add optional fields if present
 		if issue.HostID != "" {
 			issueMap["host_id"] = issue.HostID
 		}
-		
+
 		if issue.CVE != "" {
 			issueMap["cve"] = issue.CVE
 		}
-		
+
 		if issue.CVSS > 0 {
 			issueMap["cvss"] = issue.CVSS
 		}
-		
+
 		response := map[string]interface{}{
 			"issue":   issueMap,
 			"message": fmt.Sprintf("Issue '%s' created successfully in project %s", issue.Title, projectID),
 		}
-		
+
 		return response, nil
 	}
 }

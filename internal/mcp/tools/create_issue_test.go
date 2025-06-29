@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/analyst/pcf-mcp/internal/pcf"
+	"github.com/aRustyDev/pcf-mcp/internal/pcf"
 )
 
 // MockCreateIssueClient extends MockPCFClient with CreateIssue method
@@ -24,45 +24,45 @@ func (m *MockCreateIssueClient) CreateIssue(ctx context.Context, projectID strin
 // TestNewCreateIssueTool tests creating a new create issue tool
 func TestNewCreateIssueTool(t *testing.T) {
 	mockClient := &MockCreateIssueClient{}
-	
+
 	tool := NewCreateIssueTool(mockClient)
-	
+
 	if tool.Name != "create_issue" {
 		t.Errorf("Expected tool name 'create_issue', got '%s'", tool.Name)
 	}
-	
+
 	if tool.Description == "" {
 		t.Error("Tool description should not be empty")
 	}
-	
+
 	if tool.Handler == nil {
 		t.Error("Tool handler should not be nil")
 	}
-	
+
 	// Check input schema
 	if tool.InputSchema == nil {
 		t.Error("Tool should have input schema")
 	}
-	
+
 	// Verify required properties
 	props, ok := tool.InputSchema["properties"].(map[string]interface{})
 	if !ok {
 		t.Fatal("Input schema should have properties")
 	}
-	
+
 	requiredProps := []string{"project_id", "title", "description", "severity"}
 	for _, prop := range requiredProps {
 		if _, ok := props[prop]; !ok {
 			t.Errorf("Input schema missing '%s' property", prop)
 		}
 	}
-	
+
 	// Check required fields
 	required, ok := tool.InputSchema["required"].([]string)
 	if !ok {
 		t.Fatal("Input schema should have required fields")
 	}
-	
+
 	if len(required) != 4 {
 		t.Errorf("Expected 4 required fields, got %d", len(required))
 	}
@@ -71,12 +71,12 @@ func TestNewCreateIssueTool(t *testing.T) {
 // TestCreateIssueHandler tests the create issue handler functionality
 func TestCreateIssueHandler(t *testing.T) {
 	tests := []struct {
-		name          string
-		params        map[string]interface{}
-		expectedReq   pcf.CreateIssueRequest
-		mockResponse  *pcf.Issue
-		mockError     error
-		expectError   bool
+		name         string
+		params       map[string]interface{}
+		expectedReq  pcf.CreateIssueRequest
+		mockResponse *pcf.Issue
+		mockError    error
+		expectError  bool
 	}{
 		{
 			name: "Create issue with minimal info",
@@ -255,7 +255,7 @@ func TestCreateIssueHandler(t *testing.T) {
 			expectError:  true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create mock client
@@ -267,7 +267,7 @@ func TestCreateIssueHandler(t *testing.T) {
 						if projectID != expectedProjectID {
 							t.Errorf("Expected project ID '%s', got '%s'", expectedProjectID, projectID)
 						}
-						
+
 						// Verify request structure
 						if req.Title != tt.expectedReq.Title {
 							t.Errorf("Expected title '%s', got '%s'", tt.expectedReq.Title, req.Title)
@@ -288,18 +288,18 @@ func TestCreateIssueHandler(t *testing.T) {
 							t.Errorf("Expected CVSS %f, got %f", tt.expectedReq.CVSS, req.CVSS)
 						}
 					}
-					
+
 					return tt.mockResponse, tt.mockError
 				},
 			}
-			
+
 			// Create tool
 			tool := NewCreateIssueTool(mockClient)
-			
+
 			// Execute handler
 			ctx := context.Background()
 			result, err := tool.Handler(ctx, tt.params)
-			
+
 			// Check error expectation
 			if tt.expectError {
 				if err == nil {
@@ -307,29 +307,29 @@ func TestCreateIssueHandler(t *testing.T) {
 				}
 				return
 			}
-			
+
 			if err != nil {
 				t.Fatalf("Unexpected error: %v", err)
 			}
-			
+
 			// Verify result structure
 			resultMap, ok := result.(map[string]interface{})
 			if !ok {
 				t.Fatal("Result should be a map")
 			}
-			
+
 			// Check for issue key
 			issueData, ok := resultMap["issue"]
 			if !ok {
 				t.Fatal("Result should contain 'issue' key")
 			}
-			
+
 			// Verify issue structure
 			issue, ok := issueData.(map[string]interface{})
 			if !ok {
 				t.Fatal("Issue should be a map")
 			}
-			
+
 			// Check required fields
 			requiredFields := []string{"id", "project_id", "title", "description", "severity", "status"}
 			for _, field := range requiredFields {
@@ -337,7 +337,7 @@ func TestCreateIssueHandler(t *testing.T) {
 					t.Errorf("Issue missing required field: %s", field)
 				}
 			}
-			
+
 			// Check message
 			if message, ok := resultMap["message"].(string); !ok || message == "" {
 				t.Error("Result should contain a non-empty message")
