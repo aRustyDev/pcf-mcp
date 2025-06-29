@@ -24,9 +24,9 @@ fi
 
 # Load credentials from 1Password
 echo "🔐 Loading credentials from 1Password..."
-export DOCKERHUB_USERNAME=$(op read "op://CI-CD/DockerHub/username")
-export DOCKERHUB_TOKEN=$(op read "op://CI-CD/DockerHub/token")
-export GHCR_TOKEN=$(op read "op://CI-CD/GitHub/packages_write_token")
+export DOCKERHUB_USERNAME=$(op read "op://PCF-MCP/DockerHub/username")
+export DOCKERHUB_TOKEN=$(op read "op://PCF-MCP/DockerHub/token")
+export GHCR_TOKEN=$(op read "op://PCF-MCP/GitHub/packages_write_token")
 
 if [ -z "$DOCKERHUB_USERNAME" ] || [ -z "$DOCKERHUB_TOKEN" ]; then
     echo "❌ Failed to load Docker Hub credentials from 1Password"
@@ -68,10 +68,10 @@ echo ""
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     echo "Pushing to Docker Hub..."
     docker push "$DOCKERHUB_USERNAME/pcf-mcp:test-local"
-    
+
     echo "Pushing to GHCR..."
     docker push "ghcr.io/$USER/pcf-mcp:test-local"
-    
+
     echo ""
     echo "✅ Images pushed successfully!"
     echo ""

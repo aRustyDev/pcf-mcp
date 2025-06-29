@@ -55,12 +55,12 @@ Quick setup:
 #### Docker Hub Access Token
 1. Go to [Docker Hub Security Settings](https://hub.docker.com/settings/security)
 2. Create a new access token with Read, Write, Delete permissions
-3. Store in 1Password as `op://CI-CD/DockerHub/token`
+3. Store in 1Password as `op://PCF-MCP/DockerHub/token`
 
 #### GitHub Personal Access Token
 1. Go to [GitHub Tokens](https://github.com/settings/tokens)
 2. Create a fine-grained PAT with `write:packages` permission
-3. Store in 1Password as `op://CI-CD/GitHub/packages_write_token`
+3. Store in 1Password as `op://PCF-MCP/GitHub/packages_write_token`
 
 ## Workflow Features
 
@@ -168,8 +168,8 @@ Test 1Password access locally:
 op vault list
 
 # Test reading secrets
-op read "op://CI-CD/DockerHub/username"
-op read "op://CI-CD/DockerHub/token"
+op read "op://PCF-MCP/DockerHub/username"
+op read "op://PCF-MCP/DockerHub/token"
 ```
 
 Test Docker login:

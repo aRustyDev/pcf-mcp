@@ -96,9 +96,9 @@ brew install --cask 1password-cli
 eval $(op signin)
 
 # Test retrieving secrets
-op read "op://CI-CD/DockerHub/username"
-op read "op://CI-CD/DockerHub/token"
-op read "op://CI-CD/GitHub/packages_write_token"
+op read "op://PCF-MCP/DockerHub/username"
+op read "op://PCF-MCP/DockerHub/token"
+op read "op://PCF-MCP/GitHub/packages_write_token"
 ```
 
 ## Security Best Practices

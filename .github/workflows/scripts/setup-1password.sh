@@ -30,9 +30,9 @@ create_or_update_item() {
     local vault=$1
     local item_name=$2
     local template=$3
-    
+
     echo "📝 Checking for item '$item_name' in vault '$vault'..."
-    
+
     if op item get "$item_name" --vault="$vault" &> /dev/null; then
         echo "   ✓ Item already exists"
     else
@@ -129,6 +129,6 @@ echo "   op item edit DockerHub username=<your-username> --vault=CI-CD"
 echo "   op item edit DockerHub token=<your-token> --vault=CI-CD"
 echo ""
 echo "To verify your setup:"
-echo "   op read \"op://CI-CD/DockerHub/username\""
-echo "   op read \"op://CI-CD/DockerHub/token\""
-echo "   op read \"op://CI-CD/GitHub/packages_write_token\""
+echo "   op read \"op://PCF-MCP/DockerHub/username\""
+echo "   op read \"op://PCF-MCP/DockerHub/token\""
+echo "   op read \"op://PCF-MCP/GitHub/packages_write_token\""
