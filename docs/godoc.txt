@@ -1,0 +1,838 @@
+# PCF-MCP Package Documentation
+Generated on Sat Jun 28 23:31:05 EDT 2025
+
+=================================================================================
+PACKAGE: github.com/aRustyDev/pcf-mcp
+=================================================================================
+No exported symbols in github.com/aRustyDev/pcf-mcp
+
+=================================================================================
+PACKAGE: github.com/aRustyDev/pcf-mcp/cmd/pcf-mcp
+=================================================================================
+
+
+=================================================================================
+PACKAGE: github.com/aRustyDev/pcf-mcp/internal/config
+=================================================================================
+package config // import "github.com/aRustyDev/pcf-mcp/internal/config"
+
+Package config provides multi-source configuration management using Viper.
+Configuration precedence: CLI > ENV > File > Defaults
+
+TYPES
+
+type Config struct {
+	Server  ServerConfig  `mapstructure:"server"`
+	PCF     PCFConfig     `mapstructure:"pcf"`
+	Logging LoggingConfig `mapstructure:"logging"`
+	Metrics MetricsConfig `mapstructure:"metrics"`
+	Tracing TracingConfig `mapstructure:"tracing"`
+}
+    Config represents the complete application configuration
+
+func New() *Config
+    New creates a new configuration instance with default values
+
+func (c *Config) LoadFromCLI(args []string) error
+    LoadFromCLI loads configuration from command-line arguments
+
+func (c *Config) LoadFromEnvironment() error
+    LoadFromEnvironment loads configuration from environment variables
+    Environment variables should be prefixed with PCF_MCP_ and use underscores
+    Example: PCF_MCP_SERVER_HOST maps to server.host
+
+func (c *Config) LoadFromFile(path string) error
+    LoadFromFile loads configuration from a file
+
+func (c *Config) String() string
+    String returns a string representation of the configuration (with sensitive
+    data masked)
+
+func (c *Config) Validate() error
+    Validate checks if the configuration is valid
+
+type LoggingConfig struct {
+	// Level sets the minimum log level (debug, info, warn, error)
+	Level string `mapstructure:"level"`
+	// Format specifies the log output format (json or text)
+	Format string `mapstructure:"format"`
+	// AddSource includes source code location in logs
+	AddSource bool `mapstructure:"add_source"`
+}
+    LoggingConfig contains logging configuration
+
+type MetricsConfig struct {
+	// Enabled determines if metrics collection is active
+	Enabled bool `mapstructure:"enabled"`
+	// Port is the metrics endpoint listen port
+	Port int `mapstructure:"port"`
+	// Path is the metrics endpoint path
+	Path string `mapstructure:"path"`
+}
+    MetricsConfig contains Prometheus metrics configuration
+
+type PCFConfig struct {
+	// URL is the base URL of the PCF instance
+	URL string `mapstructure:"url"`
+	// APIKey is the authentication key for PCF API
+	APIKey string `mapstructure:"api_key"`
+	// Timeout is the HTTP client timeout for PCF requests
+	Timeout time.Duration `mapstructure:"timeout"`
+	// MaxRetries is the maximum number of retry attempts for failed requests
+	MaxRetries int `mapstructure:"max_retries"`
+	// InsecureSkipVerify skips TLS certificate verification (not recommended for production)
+	InsecureSkipVerify bool `mapstructure:"insecure_skip_verify"`
+}
+    PCFConfig contains Pentest Collaboration Framework client configuration
+
+type ServerConfig struct {
+	// Host is the server bind address
+	Host string `mapstructure:"host"`
+	// Port is the server listen port
+	Port int `mapstructure:"port"`
+	// Transport specifies the MCP transport type (stdio or http)
+	Transport string `mapstructure:"transport"`
+	// ReadTimeout is the maximum duration for reading the entire request
+	ReadTimeout time.Duration `mapstructure:"read_timeout"`
+	// WriteTimeout is the maximum duration before timing out writes of the response
+	WriteTimeout time.Duration `mapstructure:"write_timeout"`
+	// MaxConcurrentTools limits concurrent tool executions
+	MaxConcurrentTools int `mapstructure:"max_concurrent_tools"`
+	// ToolTimeout is the maximum duration for tool execution
+	ToolTimeout time.Duration `mapstructure:"tool_timeout"`
+	// AuthRequired enables authentication for HTTP transport
+	AuthRequired bool `mapstructure:"auth_required"`
+	// AuthToken is the bearer token for authentication
+	AuthToken string `mapstructure:"auth_token"`
+}
+    ServerConfig contains MCP server configuration
+
+type TracingConfig struct {
+	// Enabled determines if distributed tracing is active
+	Enabled bool `mapstructure:"enabled"`
+	// Exporter specifies the trace exporter type (jaeger, zipkin, otlp)
+	Exporter string `mapstructure:"exporter"`
+	// Endpoint is the trace collector endpoint
+	Endpoint string `mapstructure:"endpoint"`
+	// SamplingRate is the trace sampling rate (0.0 to 1.0)
+	SamplingRate float64 `mapstructure:"sampling_rate"`
+	// ServiceName overrides the default service name in traces
+	ServiceName string `mapstructure:"service_name"`
+}
+    TracingConfig contains OpenTelemetry tracing configuration
+
+
+=================================================================================
+PACKAGE: github.com/aRustyDev/pcf-mcp/internal/mcp
+=================================================================================
+package mcp // import "github.com/aRustyDev/pcf-mcp/internal/mcp"
+
+Package mcp provides the Model Context Protocol server implementation for
+PCF integration. It handles MCP protocol communication, tool registration,
+and execution with support for both stdio and HTTP transports.
+
+CONSTANTS
+
+const Version = "0.1.0"
+    Version of the MCP server
+
+
+TYPES
+
+type Capabilities struct {
+	// Tools indicates if the server supports tool execution
+	Tools bool
+
+	// Resources indicates if the server supports resource access
+	Resources bool
+
+	// Prompts indicates if the server supports prompt templates
+	Prompts bool
+}
+    Capabilities represents the server's MCP capabilities
+
+type GracefulServer struct {
+	// Has unexported fields.
+}
+    GracefulServer provides graceful shutdown capabilities
+
+func NewGracefulServer(server *Server) *GracefulServer
+    NewGracefulServer creates a server with graceful shutdown support
+
+func (gs *GracefulServer) Run(ctx context.Context) error
+    Run starts the server and handles graceful shutdown
+
+func (gs *GracefulServer) Shutdown(ctx context.Context) error
+    Shutdown initiates graceful shutdown
+
+type MetricsRecorder interface {
+	RecordToolExecution(toolName string, success bool, duration time.Duration)
+}
+    MetricsRecorder interface defines the metrics recording methods we need
+
+type RateLimitedServer struct {
+	*Server
+
+	// Has unexported fields.
+}
+    RateLimitedServer extends Server with rate limiting
+
+func NewRateLimitedServer(cfg config.ServerConfig, httpRPS int, toolRPM int) (*RateLimitedServer, error)
+    NewRateLimitedServer creates a server with rate limiting
+
+func (rls *RateLimitedServer) ExecuteTool(ctx context.Context, name string, params map[string]interface{}) (interface{}, error)
+    ExecuteTool executes a tool with rate limiting
+
+func (rls *RateLimitedServer) HTTPHandler() http.Handler
+    HTTPHandler returns an HTTP handler with rate limiting
+
+type RateLimiter struct {
+	// Has unexported fields.
+}
+    RateLimiter provides rate limiting functionality
+
+func NewRateLimiter(rps int, burst int, ttl time.Duration) *RateLimiter
+    NewRateLimiter creates a new rate limiter
+
+func (rl *RateLimiter) Middleware(next http.Handler) http.Handler
+    Middleware returns an HTTP middleware for rate limiting
+
+type Server struct {
+	// Has unexported fields.
+}
+    Server represents the MCP server instance
+
+func NewServer(cfg config.ServerConfig) (*Server, error)
+    NewServer creates a new MCP server instance with the given configuration
+
+func (s *Server) Capabilities() Capabilities
+    Capabilities returns the server's MCP capabilities
+
+func (s *Server) ExecuteTool(ctx context.Context, name string, params map[string]interface{}) (interface{}, error)
+    ExecuteTool executes a tool by name with the given parameters
+
+func (s *Server) ExecuteToolWithMetrics(ctx context.Context, name string, params map[string]interface{}) (interface{}, error)
+    ExecuteToolWithMetrics wraps ExecuteTool to record metrics
+
+func (s *Server) HTTPHandler() http.Handler
+    HTTPHandler returns an HTTP handler for the MCP server
+
+func (s *Server) ListTools() []Tool
+    ListTools returns all registered tools
+
+func (s *Server) Name() string
+    Name returns the server name
+
+func (s *Server) RegisterTool(tool Tool) error
+    RegisterTool registers a new tool with the server
+
+func (s *Server) SetMetrics(metrics MetricsRecorder)
+    SetMetrics sets the metrics instance for the server
+
+func (s *Server) Start(ctx context.Context) error
+    Start starts the MCP server
+
+func (s *Server) StartHTTP(ctx context.Context) error
+    StartHTTP starts the HTTP server
+
+func (s *Server) Version() string
+    Version returns the server version
+
+type ShutdownManager struct {
+	// Has unexported fields.
+}
+    ShutdownManager provides centralized shutdown coordination
+
+func NewShutdownManager() *ShutdownManager
+    NewShutdownManager creates a new shutdown manager
+
+func (sm *ShutdownManager) RegisterHook(hook func(context.Context) error)
+    RegisterHook registers a shutdown hook
+
+func (sm *ShutdownManager) Shutdown(ctx context.Context) error
+    Shutdown executes all shutdown hooks
+
+type Tool struct {
+	// Name is the unique identifier for the tool
+	Name string
+
+	// Description explains what the tool does
+	Description string
+
+	// InputSchema defines the expected parameters using JSON Schema
+	InputSchema map[string]interface{}
+
+	// Handler is the function that executes the tool logic
+	Handler ToolHandler
+}
+    Tool represents an MCP tool definition
+
+type ToolHandler func(ctx context.Context, params map[string]interface{}) (interface{}, error)
+    ToolHandler is the function signature for tool execution
+
+type ToolRateLimiter struct {
+	// Has unexported fields.
+}
+    ToolRateLimiter provides rate limiting for tool execution
+
+func NewToolRateLimiter(rateLimit int, burst int) *ToolRateLimiter
+    NewToolRateLimiter creates a new tool rate limiter
+
+func (trl *ToolRateLimiter) Allow(toolName string) bool
+    Allow checks if a tool execution is allowed
+
+func (trl *ToolRateLimiter) Wait(ctx context.Context, toolName string) error
+    Wait waits until a tool execution is allowed
+
+
+=================================================================================
+PACKAGE: github.com/aRustyDev/pcf-mcp/internal/mcp/tools
+=================================================================================
+package tools // import "github.com/aRustyDev/pcf-mcp/internal/mcp/tools"
+
+Package tools provides MCP tool implementations for PCF operations
+
+FUNCTIONS
+
+func NewAddCredentialTool(client AddCredentialClient) mcp.Tool
+    NewAddCredentialTool creates an MCP tool for adding credentials to a PCF
+    project
+
+func NewAddHostTool(client AddHostClient) mcp.Tool
+    NewAddHostTool creates an MCP tool for adding hosts to a PCF project
+
+func NewCreateIssueTool(client CreateIssueClient) mcp.Tool
+    NewCreateIssueTool creates an MCP tool for creating security issues in a PCF
+    project
+
+func NewCreateProjectTool(client CreateProjectClient) mcp.Tool
+    NewCreateProjectTool creates an MCP tool for creating PCF projects
+
+func NewGenerateReportTool(client GenerateReportClient) mcp.Tool
+    NewGenerateReportTool creates an MCP tool for generating reports from a PCF
+    project
+
+func NewListCredentialsTool(client ListCredentialsClient) mcp.Tool
+    NewListCredentialsTool creates an MCP tool for listing credentials in a PCF
+    project
+
+func NewListHostsTool(client ListHostsClient) mcp.Tool
+    NewListHostsTool creates an MCP tool for listing hosts in a PCF project
+
+func NewListIssuesTool(client ListIssuesClient) mcp.Tool
+    NewListIssuesTool creates an MCP tool for listing issues in a PCF project
+
+func NewListProjectsTool(client PCFClient) mcp.Tool
+    NewListProjectsTool creates an MCP tool for listing PCF projects
+
+func RegisterAllTools(server *mcp.Server, pcfClient FullPCFClient) error
+    RegisterAllTools registers all available PCF tools with the MCP server
+
+
+TYPES
+
+type AddCredentialClient interface {
+	AddCredential(ctx context.Context, projectID string, req pcf.AddCredentialRequest) (*pcf.Credential, error)
+}
+    AddCredentialClient defines the interface for adding credentials
+
+type AddHostClient interface {
+	AddHost(ctx context.Context, projectID string, req pcf.CreateHostRequest) (*pcf.Host, error)
+}
+    AddHostClient defines the interface for adding hosts
+
+type CreateIssueClient interface {
+	CreateIssue(ctx context.Context, projectID string, req pcf.CreateIssueRequest) (*pcf.Issue, error)
+}
+    CreateIssueClient defines the interface for creating issues
+
+type CreateProjectClient interface {
+	CreateProject(ctx context.Context, req pcf.CreateProjectRequest) (*pcf.Project, error)
+}
+    CreateProjectClient defines the interface for creating projects
+
+type FullPCFClient interface {
+	PCFClient
+	CreateProjectClient
+	ListHostsClient
+	AddHostClient
+	ListIssuesClient
+	CreateIssueClient
+	ListCredentialsClient
+	AddCredentialClient
+	GenerateReportClient
+}
+    FullPCFClient defines the complete interface for all PCF operations
+
+type GenerateReportClient interface {
+	GenerateReport(ctx context.Context, projectID string, req pcf.GenerateReportRequest) (*pcf.Report, error)
+}
+    GenerateReportClient defines the interface for generating reports
+
+type ListCredentialsClient interface {
+	ListCredentials(ctx context.Context, projectID string) ([]pcf.Credential, error)
+}
+    ListCredentialsClient defines the interface for listing credentials
+
+type ListHostsClient interface {
+	ListHosts(ctx context.Context, projectID string) ([]pcf.Host, error)
+}
+    ListHostsClient defines the interface for listing hosts
+
+type ListIssuesClient interface {
+	ListIssues(ctx context.Context, projectID string) ([]pcf.Issue, error)
+}
+    ListIssuesClient defines the interface for listing issues
+
+type PCFClient interface {
+	// ListProjects retrieves all projects from PCF
+	ListProjects(ctx context.Context) ([]pcf.Project, error)
+}
+    PCFClient defines the interface for PCF operations needed by tools
+
+
+=================================================================================
+PACKAGE: github.com/aRustyDev/pcf-mcp/internal/observability
+=================================================================================
+package observability // import "github.com/aRustyDev/pcf-mcp/internal/observability"
+
+Package observability provides logging, metrics, and tracing infrastructure
+for the PCF-MCP server. This package implements structured logging using
+slog with support for JSON and text formats, configurable log levels, and
+Kubernetes-friendly output.
+
+# Package observability provides metrics collection using Prometheus
+
+Package observability provides distributed tracing using OpenTelemetry
+
+CONSTANTS
+
+const (
+	// FieldRequestID is the key for request ID in logs
+	FieldRequestID = "request_id"
+
+	// FieldUserID is the key for user ID in logs
+	FieldUserID = "user_id"
+
+	// FieldMethod is the key for HTTP method in logs
+	FieldMethod = "method"
+
+	// FieldPath is the key for request path in logs
+	FieldPath = "path"
+
+	// FieldStatus is the key for response status in logs
+	FieldStatus = "status"
+
+	// FieldDuration is the key for request duration in logs
+	FieldDuration = "duration_ms"
+
+	// FieldError is the key for error details in logs
+	FieldError = "error"
+
+	// FieldTool is the key for MCP tool name in logs
+	FieldTool = "tool"
+
+	// FieldProject is the key for PCF project ID in logs
+	FieldProject = "project_id"
+
+	// FieldHost is the key for target host in logs
+	FieldHost = "host"
+
+	// FieldComponent is the key for component name in logs
+	FieldComponent = "component"
+)
+    Common log field keys for consistency across the application
+
+const (
+	// AttributeRequestID is the trace attribute for request ID
+	AttributeRequestID = "request.id"
+
+	// AttributeUserID is the trace attribute for user ID
+	AttributeUserID = "user.id"
+
+	// AttributeToolName is the trace attribute for MCP tool name
+	AttributeToolName = "mcp.tool.name"
+
+	// AttributeProjectID is the trace attribute for PCF project ID
+	AttributeProjectID = "pcf.project.id"
+
+	// AttributeHTTPMethod is the trace attribute for HTTP method
+	AttributeHTTPMethod = "http.method"
+
+	// AttributeHTTPPath is the trace attribute for HTTP path
+	AttributeHTTPPath = "http.path"
+
+	// AttributeHTTPStatus is the trace attribute for HTTP status code
+	AttributeHTTPStatus = "http.status"
+
+	// AttributeErrorType is the trace attribute for error type
+	AttributeErrorType = "error.type"
+)
+    Common trace attributes
+
+
+FUNCTIONS
+
+func BoolAttribute(key string, value bool) attribute.KeyValue
+    BoolAttribute creates a bool attribute
+
+func ExtractHTTPHeaders(ctx context.Context, headers map[string]string) context.Context
+    ExtractHTTPHeaders extracts trace context from HTTP headers
+
+func FromContext(ctx context.Context) *slog.Logger
+    FromContext retrieves a logger from the context. If no logger is found,
+    it returns the default logger.
+
+func InitTracing(cfg config.TracingConfig) (func(context.Context) error, error)
+    InitTracing initializes OpenTelemetry tracing with the configured exporter
+
+func InitTracingWithExporter(cfg config.TracingConfig, exporter sdktrace.SpanExporter) (func(context.Context) error, error)
+    InitTracingWithExporter initializes tracing with a custom exporter
+
+func InjectHTTPHeaders(ctx context.Context, headers map[string]string)
+    InjectHTTPHeaders injects trace context into HTTP headers
+
+func IntAttribute(key string, value int) attribute.KeyValue
+    IntAttribute creates an int attribute
+
+func LogError(logger *slog.Logger, msg string, err error, fields ...any)
+    LogError is a helper function to log errors with consistent formatting
+
+func LogRequest(logger *slog.Logger, method, path string, fields ...any)
+    LogRequest logs HTTP request details
+
+func LogResponse(logger *slog.Logger, method, path string, status int, duration int64, fields ...any)
+    LogResponse logs HTTP response details
+
+func NewLogger(cfg config.LoggingConfig) (*slog.Logger, error)
+    NewLogger creates a new structured logger based on the provided
+    configuration. It supports JSON and text output formats, configurable log
+    levels, and optional source code location tracking.
+
+func NewLoggerWithWriter(cfg config.LoggingConfig, w io.Writer) (*slog.Logger, error)
+    NewLoggerWithWriter creates a new logger with a custom writer. This is
+    useful for testing or directing logs to specific outputs.
+
+func RecordError(span trace.Span, err error, opts ...trace.EventOption)
+    RecordError records an error in the span
+
+func SetGlobalLogger(logger *slog.Logger)
+    SetGlobalLogger sets the global default logger. This affects all code that
+    uses slog.Default().
+
+func SpanFromContext(ctx context.Context) trace.Span
+    SpanFromContext returns the current span from the context
+
+func StartSpan(ctx context.Context, name string, opts ...trace.SpanStartOption) (context.Context, trace.Span)
+    StartSpan starts a new span with the given name
+
+func StringAttribute(key, value string) attribute.KeyValue
+    StringAttribute creates a string attribute
+
+func TracedHandler(name string, handler func(context.Context) error) func(context.Context) error
+    TracedHandler wraps an HTTP handler with tracing
+
+func WithLogger(ctx context.Context, logger *slog.Logger) context.Context
+    WithLogger stores a logger in the context
+
+
+TYPES
+
+type LoggerMiddleware struct {
+	// Has unexported fields.
+}
+    LoggerMiddleware is a helper type for adding consistent fields to all logs
+
+func NewLoggerMiddleware(logger *slog.Logger, fields ...any) *LoggerMiddleware
+    NewLoggerMiddleware creates a new logger middleware with common fields
+
+func (lm *LoggerMiddleware) Debug(msg string, fields ...any)
+    Debug logs at debug level with middleware fields
+
+func (lm *LoggerMiddleware) Error(msg string, fields ...any)
+    Error logs at error level with middleware fields
+
+func (lm *LoggerMiddleware) Info(msg string, fields ...any)
+    Info logs at info level with middleware fields
+
+func (lm *LoggerMiddleware) Logger() *slog.Logger
+    Logger returns the underlying slog.Logger
+
+func (lm *LoggerMiddleware) Warn(msg string, fields ...any)
+    Warn logs at warn level with middleware fields
+
+func (lm *LoggerMiddleware) With(fields ...any) *LoggerMiddleware
+    With returns a new LoggerMiddleware with additional fields
+
+type Metrics struct {
+	// RequestsTotal counts total HTTP requests
+	RequestsTotal *prometheus.CounterVec
+
+	// RequestDuration tracks HTTP request duration
+	RequestDuration *prometheus.HistogramVec
+
+	// ActiveConnections tracks current active connections
+	ActiveConnections prometheus.Gauge
+
+	// ToolExecutions counts tool executions
+	ToolExecutions *prometheus.CounterVec
+
+	// ToolErrors counts tool execution errors
+	ToolErrors *prometheus.CounterVec
+
+	// ToolDuration tracks tool execution duration
+	ToolDuration *prometheus.HistogramVec
+
+	// Has unexported fields.
+}
+    Metrics holds all Prometheus metrics for the application
+
+func InitMetrics(cfg config.MetricsConfig) (*Metrics, error)
+    InitMetrics initializes the Prometheus metrics
+
+func (m *Metrics) ConnectionClosed()
+    ConnectionClosed decrements the active connections gauge
+
+func (m *Metrics) ConnectionOpened()
+    ConnectionOpened increments the active connections gauge
+
+func (m *Metrics) HTTPMiddleware(next http.Handler) http.Handler
+    HTTPMiddleware is a middleware that records HTTP metrics
+
+func (m *Metrics) Handler() http.Handler
+    Handler returns the Prometheus HTTP handler
+
+func (m *Metrics) RecordRequest(method, path string, status int, duration time.Duration)
+    RecordRequest records an HTTP request metric
+
+func (m *Metrics) RecordToolExecution(toolName string, success bool, duration time.Duration)
+    RecordToolExecution records a tool execution metric
+
+func (m *Metrics) StartServer(cfg config.MetricsConfig) error
+    StartServer starts the metrics HTTP server
+
+
+=================================================================================
+PACKAGE: github.com/aRustyDev/pcf-mcp/internal/pcf
+=================================================================================
+package pcf // import "github.com/aRustyDev/pcf-mcp/internal/pcf"
+
+Package pcf provides a client for interacting with the Pentest Collaboration
+Framework API
+
+TYPES
+
+type AddCredentialRequest struct {
+	HostID   string `json:"host_id,omitempty"`
+	Type     string `json:"type"`
+	Username string `json:"username"`
+	Value    string `json:"value"`
+	Service  string `json:"service,omitempty"`
+	Notes    string `json:"notes,omitempty"`
+}
+    AddCredentialRequest represents a request to add a new credential
+
+type Client struct {
+	// Has unexported fields.
+}
+    Client represents a PCF API client
+
+func NewClient(cfg config.PCFConfig) (*Client, error)
+    NewClient creates a new PCF API client
+
+func (c *Client) AddCredential(ctx context.Context, projectID string, req AddCredentialRequest) (*Credential, error)
+    AddCredential adds a new credential to a project
+
+func (c *Client) AddHost(ctx context.Context, projectID string, req CreateHostRequest) (*Host, error)
+    AddHost adds a new host to a project
+
+func (c *Client) BaseURL() string
+    BaseURL returns the client's base URL
+
+func (c *Client) CreateIssue(ctx context.Context, projectID string, req CreateIssueRequest) (*Issue, error)
+    CreateIssue creates a new issue in a project
+
+func (c *Client) CreateProject(ctx context.Context, req CreateProjectRequest) (*Project, error)
+    CreateProject creates a new project in PCF
+
+func (c *Client) GenerateReport(ctx context.Context, projectID string, req GenerateReportRequest) (*Report, error)
+    GenerateReport generates a report for a project
+
+func (c *Client) GetProject(ctx context.Context, projectID string) (*Project, error)
+    GetProject retrieves a specific project by ID
+
+func (c *Client) ListCredentials(ctx context.Context, projectID string) ([]Credential, error)
+    ListCredentials retrieves all credentials for a project
+
+func (c *Client) ListHosts(ctx context.Context, projectID string) ([]Host, error)
+    ListHosts retrieves all hosts for a project
+
+func (c *Client) ListIssues(ctx context.Context, projectID string) ([]Issue, error)
+    ListIssues retrieves all issues for a project
+
+func (c *Client) ListProjects(ctx context.Context) ([]Project, error)
+    ListProjects retrieves all projects from PCF
+
+type CreateHostRequest struct {
+	IP       string   `json:"ip"`
+	Hostname string   `json:"hostname,omitempty"`
+	OS       string   `json:"os,omitempty"`
+	Services []string `json:"services,omitempty"`
+}
+    CreateHostRequest represents a request to add a new host
+
+type CreateIssueRequest struct {
+	HostID      string  `json:"host_id,omitempty"`
+	Title       string  `json:"title"`
+	Description string  `json:"description"`
+	Severity    string  `json:"severity"`
+	CVE         string  `json:"cve,omitempty"`
+	CVSS        float64 `json:"cvss,omitempty"`
+}
+    CreateIssueRequest represents a request to create a new issue
+
+type CreateProjectRequest struct {
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	Team        []string `json:"team,omitempty"`
+}
+    CreateProjectRequest represents a request to create a new project
+
+type Credential struct {
+	// ID is the unique identifier
+	ID string `json:"id"`
+
+	// ProjectID is the associated project ID
+	ProjectID string `json:"project_id"`
+
+	// HostID is the associated host ID (if applicable)
+	HostID string `json:"host_id,omitempty"`
+
+	// Type indicates the credential type (password, hash, key, etc.)
+	Type string `json:"type"`
+
+	// Username is the username
+	Username string `json:"username"`
+
+	// Value is the credential value (encrypted in storage)
+	Value string `json:"value"`
+
+	// Service is the associated service
+	Service string `json:"service,omitempty"`
+
+	// Notes provides additional context
+	Notes string `json:"notes,omitempty"`
+}
+    Credential represents stored credentials
+
+type ErrorResponse struct {
+	Error   string `json:"error"`
+	Message string `json:"message,omitempty"`
+	Code    int    `json:"code,omitempty"`
+}
+    ErrorResponse represents an error response from PCF API
+
+type GenerateReportRequest struct {
+	Format             string   `json:"format"`
+	IncludeHosts       bool     `json:"include_hosts"`
+	IncludeIssues      bool     `json:"include_issues"`
+	IncludeCredentials bool     `json:"include_credentials"`
+	Sections           []string `json:"sections,omitempty"`
+}
+    GenerateReportRequest represents a request to generate a report
+
+type Host struct {
+	// ID is the unique identifier of the host
+	ID string `json:"id"`
+
+	// ProjectID is the associated project ID
+	ProjectID string `json:"project_id"`
+
+	// IP is the host IP address
+	IP string `json:"ip"`
+
+	// Hostname is the host's DNS name
+	Hostname string `json:"hostname,omitempty"`
+
+	// OS is the operating system
+	OS string `json:"os,omitempty"`
+
+	// Services is a list of discovered services
+	Services []string `json:"services,omitempty"`
+
+	// Status indicates if the host is active
+	Status string `json:"status,omitempty"`
+}
+    Host represents a target host in PCF
+
+type Issue struct {
+	// ID is the unique identifier of the issue
+	ID string `json:"id"`
+
+	// ProjectID is the associated project ID
+	ProjectID string `json:"project_id"`
+
+	// HostID is the associated host ID (if applicable)
+	HostID string `json:"host_id,omitempty"`
+
+	// Title is the issue title
+	Title string `json:"title"`
+
+	// Description provides issue details
+	Description string `json:"description"`
+
+	// Severity indicates the issue severity (Critical, High, Medium, Low, Info)
+	Severity string `json:"severity"`
+
+	// Status indicates the issue status (Open, In Progress, Resolved, Closed)
+	Status string `json:"status"`
+
+	// CVE is the associated CVE identifier (if applicable)
+	CVE string `json:"cve,omitempty"`
+
+	// CVSS is the CVSS score (if applicable)
+	CVSS float64 `json:"cvss,omitempty"`
+}
+    Issue represents a security issue or finding
+
+type Project struct {
+	// ID is the unique identifier of the project
+	ID string `json:"id"`
+
+	// Name is the project name
+	Name string `json:"name"`
+
+	// Description provides details about the project
+	Description string `json:"description"`
+
+	// CreatedAt is the project creation timestamp
+	CreatedAt time.Time `json:"created_at"`
+
+	// UpdatedAt is the last update timestamp
+	UpdatedAt time.Time `json:"updated_at"`
+
+	// Status indicates the project status
+	Status string `json:"status,omitempty"`
+
+	// Team members associated with the project
+	Team []string `json:"team,omitempty"`
+}
+    Project represents a PCF project
+
+type Report struct {
+	ID        string    `json:"id"`
+	ProjectID string    `json:"project_id"`
+	Format    string    `json:"format"`
+	Status    string    `json:"status"`
+	URL       string    `json:"url,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
+	Size      int64     `json:"size,omitempty"`
+}
+    Report represents a generated report
+
+
+=================================================================================
+PACKAGE: github.com/aRustyDev/pcf-mcp/tests
+=================================================================================
+No exported symbols in github.com/aRustyDev/pcf-mcp/tests
+
