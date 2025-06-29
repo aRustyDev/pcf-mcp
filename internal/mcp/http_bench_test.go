@@ -8,8 +8,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
-	"github.com/analyst/pcf-mcp/internal/config"
+	"github.com/aRustyDev/pcf-mcp/internal/config"
 )
 
 // BenchmarkHTTPEndpoints benchmarks various HTTP endpoints
@@ -126,13 +127,24 @@ func BenchmarkConcurrentHTTPRequests(b *testing.B) {
 	srv := httptest.NewServer(handler)
 	defer srv.Close()
 
-	concurrencyLevels := []int{1, 10, 50, 100}
+	// Use more reasonable concurrency levels to avoid port exhaustion
+	concurrencyLevels := []int{1, 5, 10, 20}
+
+	// Create a shared HTTP client with connection pooling
+	client := &http.Client{
+		Transport: &http.Transport{
+			MaxIdleConns:        100,
+			MaxIdleConnsPerHost: 20,
+			MaxConnsPerHost:     20,
+			IdleConnTimeout:     30 * time.Second,
+		},
+		Timeout: 10 * time.Second,
+	}
 
 	for _, concurrency := range concurrencyLevels {
 		b.Run(fmt.Sprintf("concurrency-%d", concurrency), func(b *testing.B) {
 			b.SetParallelism(concurrency)
 			b.RunParallel(func(pb *testing.PB) {
-				client := &http.Client{}
 				toolIndex := 0
 				for pb.Next() {
 					// Rotate through different tools
@@ -185,10 +197,21 @@ func BenchmarkHTTPPayloadSizes(b *testing.B) {
 	srv := httptest.NewServer(handler)
 	defer srv.Close()
 
+	// Create HTTP client with connection pooling
+	client := &http.Client{
+		Transport: &http.Transport{
+			MaxIdleConns:        10,
+			MaxIdleConnsPerHost: 10,
+			MaxConnsPerHost:     10,
+			IdleConnTimeout:     30 * time.Second,
+		},
+		Timeout: 10 * time.Second,
+	}
+
 	payloadSizes := []int{
-		1 * 1024,       // 1 KB
-		10 * 1024,      // 10 KB
-		100 * 1024,     // 100 KB
+		1 * 1024,        // 1 KB
+		10 * 1024,       // 10 KB
+		100 * 1024,      // 100 KB
 		1 * 1024 * 1024, // 1 MB
 	}
 
@@ -209,7 +232,7 @@ func BenchmarkHTTPPayloadSizes(b *testing.B) {
 			b.SetBytes(int64(len(body)))
 
 			for i := 0; i < b.N; i++ {
-				resp, err := http.Post(srv.URL+"/tools/echo", "application/json", bytes.NewReader(body))
+				resp, err := client.Post(srv.URL+"/tools/echo", "application/json", bytes.NewReader(body))
 				if err != nil {
 					b.Fatal(err)
 				}
@@ -257,15 +280,24 @@ func BenchmarkHTTPMiddleware(b *testing.B) {
 			srv := httptest.NewServer(handler)
 			defer srv.Close()
 
-			req, _ := http.NewRequest("GET", srv.URL+"/health", nil)
-			if tc.config.AuthRequired {
-				req.Header.Set("Authorization", "Bearer "+tc.config.AuthToken)
+			// Create HTTP client with connection pooling
+			client := &http.Client{
+				Transport: &http.Transport{
+					MaxIdleConns:        10,
+					MaxIdleConnsPerHost: 10,
+					MaxConnsPerHost:     10,
+					IdleConnTimeout:     30 * time.Second,
+				},
+				Timeout: 5 * time.Second,
 			}
-
-			client := &http.Client{}
 
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
+				req, _ := http.NewRequest("GET", srv.URL+"/health", nil)
+				if tc.config.AuthRequired {
+					req.Header.Set("Authorization", "Bearer "+tc.config.AuthToken)
+				}
+				
 				resp, err := client.Do(req)
 				if err != nil {
 					b.Fatal(err)
