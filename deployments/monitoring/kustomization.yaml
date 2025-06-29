@@ -1,0 +1,24 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: monitoring
+
+resources:
+  - namespace.yaml
+  - prometheus-deployment.yaml
+  - grafana-deployment.yaml
+  - alertmanager-deployment.yaml
+
+configMapGenerator:
+  - name: prometheus-config
+    files:
+      - prometheus.yml=prometheus-config.yaml
+  - name: prometheus-alerts
+    files:
+      - pcf-mcp-alerts.yml=alerts/pcf-mcp-alerts.yml
+  - name: grafana-dashboards
+    files:
+      - pcf-mcp-dashboard.json=../../docs/grafana-dashboard.json
+
+generatorOptions:
+  disableNameSuffixHash: true

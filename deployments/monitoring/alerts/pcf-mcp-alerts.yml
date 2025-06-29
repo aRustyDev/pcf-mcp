@@ -1,0 +1,175 @@
+groups:
+  - name: pcf-mcp
+    interval: 30s
+    rules:
+      # High Error Rate
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum(rate(pcf_mcp_tool_errors_total[5m])) 
+            / 
+            sum(rate(pcf_mcp_tool_executions_total[5m]))
+          ) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High error rate detected ({{ $value | humanizePercentage }})"
+          description: "PCF-MCP error rate is {{ $value | humanizePercentage }} (threshold: 1%)"
+          dashboard: "https://grafana.example.com/d/pcf-mcp"
+
+      # Very High Error Rate
+      - alert: VeryHighErrorRate
+        expr: |
+          (
+            sum(rate(pcf_mcp_tool_errors_total[5m])) 
+            / 
+            sum(rate(pcf_mcp_tool_executions_total[5m]))
+          ) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+          pager: true
+        annotations:
+          summary: "Critical error rate detected ({{ $value | humanizePercentage }})"
+          description: "PCF-MCP error rate is {{ $value | humanizePercentage }} (threshold: 5%)"
+          runbook: "https://wiki.example.com/runbooks/pcf-mcp-high-errors"
+
+      # High Latency
+      - alert: HighLatency
+        expr: |
+          histogram_quantile(0.99,
+            sum(rate(http_request_duration_seconds_bucket{job="pcf-mcp"}[5m])) by (le)
+          ) > 5
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High P99 latency detected ({{ $value | humanizeDuration }})"
+          description: "PCF-MCP P99 latency is {{ $value | humanizeDuration }} (threshold: 5s)"
+
+      # Pod Restarts
+      - alert: PodRestarts
+        expr: |
+          increase(kube_pod_container_status_restarts_total{
+            namespace="pcf-mcp",
+            container="pcf-mcp"
+          }[1h]) > 3
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Pod {{ $labels.pod }} has restarted {{ $value }} times in the last hour"
+          description: "Container {{ $labels.container }} in pod {{ $labels.pod }} has restarted frequently"
+
+      # No Active Instances
+      - alert: NoActiveInstances
+        expr: |
+          sum(up{job="pcf-mcp"}) == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+          pager: true
+        annotations:
+          summary: "No active PCF-MCP instances"
+          description: "All PCF-MCP instances are down"
+          runbook: "https://wiki.example.com/runbooks/pcf-mcp-down"
+
+      # High Memory Usage
+      - alert: HighMemoryUsage
+        expr: |
+          (
+            container_memory_working_set_bytes{
+              namespace="pcf-mcp",
+              container="pcf-mcp"
+            } 
+            / 
+            container_spec_memory_limit_bytes{
+              namespace="pcf-mcp",
+              container="pcf-mcp"
+            }
+          ) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High memory usage in pod {{ $labels.pod }}"
+          description: "Memory usage is at {{ $value | humanizePercentage }} of limit"
+
+      # High CPU Usage
+      - alert: HighCPUUsage
+        expr: |
+          (
+            rate(container_cpu_usage_seconds_total{
+              namespace="pcf-mcp",
+              container="pcf-mcp"
+            }[5m])
+          ) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High CPU usage in pod {{ $labels.pod }}"
+          description: "CPU usage is at {{ $value | humanizePercentage }} of request"
+
+      # Certificate Expiry
+      - alert: CertificateExpiringSoon
+        expr: |
+          probe_ssl_earliest_cert_expiry{job="pcf-mcp"} - time() < 86400 * 7
+        for: 1h
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "SSL certificate expiring soon"
+          description: "SSL certificate for {{ $labels.instance }} expires in {{ $value | humanizeDuration }}"
+
+      # Rate Limiting Active
+      - alert: RateLimitingActive
+        expr: |
+          sum(rate(http_requests_total{
+            job="pcf-mcp",
+            status="429"
+          }[5m])) > 10
+        for: 5m
+        labels:
+          severity: info
+          team: platform
+        annotations:
+          summary: "Rate limiting is actively rejecting requests"
+          description: "{{ $value }} requests per second are being rate limited"
+
+      # Tool Execution Failures
+      - alert: ToolExecutionFailures
+        expr: |
+          sum(rate(pcf_mcp_tool_errors_total[5m])) by (tool) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Tool {{ $labels.tool }} is failing frequently"
+          description: "Tool {{ $labels.tool }} has {{ $value }} errors per second"
+
+      # Queue Saturation
+      - alert: ToolQueueSaturation
+        expr: |
+          (
+            pcf_mcp_tool_queue_size
+            /
+            pcf_mcp_tool_queue_capacity
+          ) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Tool execution queue is saturated"
+          description: "Queue is at {{ $value | humanizePercentage }} capacity"
