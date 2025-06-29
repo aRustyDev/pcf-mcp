@@ -112,10 +112,10 @@ type ToolRateLimiter struct {
 }
 
 // NewToolRateLimiter creates a new tool rate limiter
-func NewToolRateLimiter(rate int, burst int) *ToolRateLimiter {
+func NewToolRateLimiter(rateLimit int, burst int) *ToolRateLimiter {
 	return &ToolRateLimiter{
 		limiters: make(map[string]*rate.Limiter),
-		rate:     rate,
+		rate:     rateLimit,
 		burst:    burst,
 	}
 }

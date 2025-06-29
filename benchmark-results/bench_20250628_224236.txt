@@ -1,0 +1,46 @@
+FAIL	github.com/analyst/pcf-mcp/cmd/pcf-mcp [setup failed]
+FAIL	github.com/analyst/pcf-mcp/internal/mcp [setup failed]
+FAIL	github.com/analyst/pcf-mcp/internal/mcp/tools [setup failed]
+FAIL	github.com/analyst/pcf-mcp [build failed]
+--- FAIL: TestNewConfig (0.00s)
+    config_test.go:21: Expected default host '0.0.0.0', got 'cli-host'
+    config_test.go:25: Expected default port 8080, got 1111
+--- FAIL: TestLoadFromFile (0.00s)
+    --- FAIL: TestLoadFromFile/YAML_configuration (0.00s)
+        config_test.go:96: Expected host '127.0.0.1', got 'cli-host'
+--- FAIL: TestLoadFromEnvironment (0.00s)
+    config_test.go:150: Expected host '192.168.1.1', got 'cli-host'
+--- FAIL: TestNewConfig (0.00s)
+    config_test.go:21: Expected default host '0.0.0.0', got 'cli-host'
+    config_test.go:25: Expected default port 8080, got 1111
+--- FAIL: TestLoadFromFile (0.00s)
+    --- FAIL: TestLoadFromFile/YAML_configuration (0.00s)
+        config_test.go:96: Expected host '127.0.0.1', got 'cli-host'
+--- FAIL: TestLoadFromEnvironment (0.00s)
+    config_test.go:150: Expected host '192.168.1.1', got 'cli-host'
+FAIL
+exit status 1
+FAIL	github.com/analyst/pcf-mcp/internal/config	0.490s
+{"time":"2025-06-28T22:42:41.379951-04:00","level":"INFO","msg":"traces export: Post \"http://localhost:4317/v1/traces\": dial tcp [::1]:4317: connect: connection refused"}
+{"time":"2025-06-28T22:42:41.382117-04:00","level":"INFO","msg":"traces export: Post \"http://localhost:4317/v1/traces\": dial tcp [::1]:4317: connect: connection refused"}
+{"time":"2025-06-28T22:42:41.382884-04:00","level":"INFO","msg":"traces export: Post \"http://localhost:4317/v1/traces\": dial tcp [::1]:4317: connect: connection refused"}
+{"time":"2025-06-28T22:42:41.383624-04:00","level":"INFO","msg":"traces export: Post \"http://localhost:4317/v1/traces\": dial tcp [::1]:4317: connect: connection refused"}
+{"time":"2025-06-28T22:42:41.384383-04:00","level":"INFO","msg":"traces export: Post \"http://localhost:4317/v1/traces\": dial tcp [::1]:4317: connect: connection refused"}
+--- FAIL: TestMetricsServer (0.10s)
+    metrics_test.go:245: Metrics server error: listen tcp :9999: bind: address already in use
+{"time":"2025-06-28T22:42:41.510856-04:00","level":"INFO","msg":"traces export: Post \"http://localhost:4317/v1/traces\": dial tcp [::1]:4317: connect: connection refused"}
+{"time":"2025-06-28T22:42:41.511643-04:00","level":"INFO","msg":"traces export: Post \"http://localhost:4317/v1/traces\": dial tcp [::1]:4317: connect: connection refused"}
+{"time":"2025-06-28T22:42:41.512458-04:00","level":"INFO","msg":"traces export: Post \"http://localhost:4317/v1/traces\": dial tcp [::1]:4317: connect: connection refused"}
+{"time":"2025-06-28T22:42:41.513244-04:00","level":"INFO","msg":"traces export: Post \"http://localhost:4317/v1/traces\": dial tcp [::1]:4317: connect: connection refused"}
+{"time":"2025-06-28T22:42:41.514053-04:00","level":"INFO","msg":"traces export: Post \"http://localhost:4317/v1/traces\": dial tcp [::1]:4317: connect: connection refused"}
+--- FAIL: TestMetricsServer (0.10s)
+    metrics_test.go:245: Metrics server error: listen tcp :9999: bind: address already in use
+{"time":"2025-06-28T22:42:41.638159-04:00","level":"INFO","msg":"traces export: Post \"http://localhost:4317/v1/traces\": dial tcp [::1]:4317: connect: connection refused"}
+{"time":"2025-06-28T22:42:41.638917-04:00","level":"INFO","msg":"traces export: Post \"http://localhost:4317/v1/traces\": dial tcp [::1]:4317: connect: connection refused"}
+{"time":"2025-06-28T22:42:41.63959-04:00","level":"INFO","msg":"traces export: Post \"http://localhost:4317/v1/traces\": dial tcp [::1]:4317: connect: connection refused"}
+{"time":"2025-06-28T22:42:41.640494-04:00","level":"INFO","msg":"traces export: Post \"http://localhost:4317/v1/traces\": dial tcp [::1]:4317: connect: connection refused"}
+{"time":"2025-06-28T22:42:41.641367-04:00","level":"INFO","msg":"traces export: Post \"http://localhost:4317/v1/traces\": dial tcp [::1]:4317: connect: connection refused"}
+FAIL
+exit status 1
+FAIL	github.com/analyst/pcf-mcp/internal/observability	0.955s
+FAIL	github.com/analyst/pcf-mcp/internal/pcf [build failed]

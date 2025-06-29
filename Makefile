@@ -34,7 +34,7 @@ security:
 # Performance benchmarks
 bench:
 	@echo "Running benchmarks..."
-	go test -bench=. -benchmem -benchtime=10s ./...
+	@./scripts/benchmark.sh
 
 # Clean build artifacts
 clean:
