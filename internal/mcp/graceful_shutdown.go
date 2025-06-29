@@ -53,7 +53,7 @@ func (gs *GracefulServer) Run(ctx context.Context) error {
 // runHTTP runs the HTTP server with graceful shutdown
 func (gs *GracefulServer) runHTTP(ctx context.Context, sigChan chan os.Signal) error {
 	addr := fmt.Sprintf("%s:%d", gs.server.config.Host, gs.server.config.Port)
-	
+
 	gs.httpServer = &http.Server{
 		Addr:         addr,
 		Handler:      gs.wrapHandler(gs.server.HTTPHandler()),
@@ -115,10 +115,10 @@ func (gs *GracefulServer) runStdio(ctx context.Context, sigChan chan os.Signal) 
 
 	// Signal shutdown
 	close(gs.shutdownChan)
-	
+
 	// Wait for server to finish
 	gs.wg.Wait()
-	
+
 	return nil
 }
 
@@ -230,12 +230,12 @@ func NewShutdownManager() *ShutdownManager {
 func (sm *ShutdownManager) RegisterHook(hook func(context.Context) error) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
-	
+
 	if sm.shutdown {
 		slog.Warn("Cannot register hook during shutdown")
 		return
 	}
-	
+
 	sm.hooks = append(sm.hooks, hook)
 }
 

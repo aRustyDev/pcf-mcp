@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/analyst/pcf-mcp/internal/config"
+	"github.com/aRustyDev/pcf-mcp/internal/config"
 	"golang.org/x/time/rate"
 )
 
