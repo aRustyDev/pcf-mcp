@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "pcf-mcp.fullname" . }}
+  labels:
+    {{- include "pcf-mcp.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "pcf-mcp.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "pcf-mcp.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "pcf-mcp.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+      - name: {{ .Chart.Name }}
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 12 }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.config.server.port }}
+          protocol: TCP
+        - name: metrics
+          containerPort: {{ .Values.config.metrics.port }}
+          protocol: TCP
+        env:
+        - name: PCF_MCP_PCF_URL
+          value: {{ .Values.config.pcf.url | quote }}
+        - name: PCF_MCP_PCF_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ if .Values.externalSecret.enabled }}{{ .Values.externalSecret.name }}{{ else }}{{ include "pcf-mcp.fullname" . }}{{ end }}
+              key: {{ if .Values.externalSecret.enabled }}{{ .Values.externalSecret.keys.pcfApiKey }}{{ else }}pcf-api-key{{ end }}
+        {{- if .Values.config.server.authRequired }}
+        - name: PCF_MCP_SERVER_AUTH_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: {{ if .Values.externalSecret.enabled }}{{ .Values.externalSecret.name }}{{ else }}{{ include "pcf-mcp.fullname" . }}{{ end }}
+              key: {{ if .Values.externalSecret.enabled }}{{ .Values.externalSecret.keys.authToken }}{{ else }}auth-token{{ end }}
+        {{- end }}
+        volumeMounts:
+        - name: config
+          mountPath: /etc/pcf-mcp
+          readOnly: true
+        livenessProbe:
+          {{- toYaml .Values.livenessProbe | nindent 12 }}
+        readinessProbe:
+          {{- toYaml .Values.readinessProbe | nindent 12 }}
+        resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+      - name: config
+        configMap:
+          name: {{ include "pcf-mcp.fullname" . }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

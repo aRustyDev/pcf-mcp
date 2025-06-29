@@ -1,0 +1,188 @@
+# Default values for pcf-mcp.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 3
+
+image:
+  repository: pcf-mcp
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "9090"
+  prometheus.io/path: "/metrics"
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65534
+  fsGroup: 65534
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 65534
+  capabilities:
+    drop:
+    - ALL
+
+service:
+  type: ClusterIP
+  port: 8080
+  metricsPort: 9090
+  annotations: {}
+
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations: {}
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+    # nginx.ingress.kubernetes.io/rate-limit: "100"
+  hosts:
+    - host: pcf-mcp.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  #  - secretName: pcf-mcp-tls
+  #    hosts:
+  #      - pcf-mcp.example.com
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app.kubernetes.io/name
+            operator: In
+            values:
+            - pcf-mcp
+        topologyKey: kubernetes.io/hostname
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 30
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            name: ingress-nginx
+      ports:
+      - protocol: TCP
+        port: 8080
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            name: monitoring
+      ports:
+      - protocol: TCP
+        port: 9090
+
+# PCF-MCP specific configuration
+config:
+  server:
+    transport: http
+    host: 0.0.0.0
+    port: 8080
+    maxConcurrentTools: 20
+    toolTimeout: 60s
+    readTimeout: 30s
+    writeTimeout: 30s
+    authRequired: false
+    authToken: ""
+
+  pcf:
+    url: ""
+    apiKey: ""
+    timeout: 30s
+    maxRetries: 3
+    insecureSkipVerify: false
+
+  logging:
+    level: info
+    format: json
+    addSource: false
+
+  metrics:
+    enabled: true
+    port: 9090
+    path: /metrics
+
+  tracing:
+    enabled: false
+    exporter: otlp
+    endpoint: http://otel-collector:4317
+    samplingRate: 0.1
+    serviceName: pcf-mcp
+
+# External secret configuration (optional)
+externalSecret:
+  enabled: false
+  # Name of the external secret
+  name: ""
+  # Backend type (aws-secrets-manager, vault, etc.)
+  backend: ""
+  # Key within the secret
+  keys:
+    pcfApiKey: "pcf-api-key"
+    authToken: "auth-token"

@@ -1,0 +1,15 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: pcf-mcp
+  namespace: pcf-mcp
+  labels:
+    app.kubernetes.io/name: pcf-mcp
+    app.kubernetes.io/component: pdb
+    app.kubernetes.io/part-of: pcf-mcp
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pcf-mcp
+      app.kubernetes.io/component: server

@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pcf-mcp
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+      - name: pcf-mcp
+        env:
+        - name: PCF_MCP_LOGGING_LEVEL
+          value: "debug"
+        - name: PCF_MCP_LOGGING_FORMAT
+          value: "text"
+        - name: PCF_MCP_LOGGING_ADD_SOURCE
+          value: "true"
+        - name: PCF_MCP_TRACING_ENABLED
+          value: "false"
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"

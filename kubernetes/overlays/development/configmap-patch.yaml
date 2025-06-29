@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pcf-mcp-config
+data:
+  config.yaml: |
+    server:
+      transport: http
+      host: 0.0.0.0
+      port: 8080
+      max_concurrent_tools: 5
+      tool_timeout: 120s
+      auth_required: false
+      
+    pcf:
+      timeout: 60s
+      max_retries: 5
+      insecure_skip_verify: true
+      
+    logging:
+      level: debug
+      format: text
+      add_source: true
+      
+    metrics:
+      enabled: true
+      port: 9090
+      
+    tracing:
+      enabled: false

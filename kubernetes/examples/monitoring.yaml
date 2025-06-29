@@ -1,0 +1,73 @@
+# ServiceMonitor for Prometheus Operator
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: pcf-mcp
+  namespace: pcf-mcp
+  labels:
+    app: pcf-mcp
+    prometheus: kube-prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pcf-mcp
+      app.kubernetes.io/component: metrics
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+    scheme: http
+---
+# PrometheusRule for alerts
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: pcf-mcp
+  namespace: pcf-mcp
+  labels:
+    app: pcf-mcp
+    prometheus: kube-prometheus
+spec:
+  groups:
+  - name: pcf-mcp.rules
+    interval: 30s
+    rules:
+    - alert: PCFMCPDown
+      expr: up{job="pcf-mcp"} == 0
+      for: 5m
+      labels:
+        severity: critical
+        service: pcf-mcp
+      annotations:
+        summary: "PCF-MCP instance {{ $labels.instance }} is down"
+        description: "PCF-MCP instance {{ $labels.instance }} has been down for more than 5 minutes."
+    
+    - alert: PCFMCPHighErrorRate
+      expr: rate(pcf_mcp_tool_errors_total[5m]) > 0.1
+      for: 5m
+      labels:
+        severity: warning
+        service: pcf-mcp
+      annotations:
+        summary: "High error rate in PCF-MCP"
+        description: "PCF-MCP is experiencing {{ $value }} errors per second"
+    
+    - alert: PCFMCPHighLatency
+      expr: histogram_quantile(0.99, rate(pcf_mcp_tool_duration_seconds_bucket[5m])) > 5
+      for: 5m
+      labels:
+        severity: warning
+        service: pcf-mcp
+      annotations:
+        summary: "High latency in PCF-MCP tool execution"
+        description: "99th percentile latency is {{ $value }} seconds"
+    
+    - alert: PCFMCPPodRestarts
+      expr: increase(kube_pod_container_status_restarts_total{namespace="pcf-mcp"}[1h]) > 5
+      for: 5m
+      labels:
+        severity: warning
+        service: pcf-mcp
+      annotations:
+        summary: "PCF-MCP pod restarting frequently"
+        description: "Pod {{ $labels.pod }} has restarted {{ $value }} times in the last hour"

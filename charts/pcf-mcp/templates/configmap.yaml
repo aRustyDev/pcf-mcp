@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "pcf-mcp.fullname" . }}
+  labels:
+    {{- include "pcf-mcp.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    server:
+      transport: {{ .Values.config.server.transport }}
+      host: {{ .Values.config.server.host }}
+      port: {{ .Values.config.server.port }}
+      max_concurrent_tools: {{ .Values.config.server.maxConcurrentTools }}
+      tool_timeout: {{ .Values.config.server.toolTimeout }}
+      read_timeout: {{ .Values.config.server.readTimeout }}
+      write_timeout: {{ .Values.config.server.writeTimeout }}
+      {{- if .Values.config.server.authRequired }}
+      auth_required: true
+      {{- end }}
+      
+    pcf:
+      {{- if .Values.config.pcf.url }}
+      url: {{ .Values.config.pcf.url }}
+      {{- end }}
+      timeout: {{ .Values.config.pcf.timeout }}
+      max_retries: {{ .Values.config.pcf.maxRetries }}
+      insecure_skip_verify: {{ .Values.config.pcf.insecureSkipVerify }}
+      
+    logging:
+      level: {{ .Values.config.logging.level }}
+      format: {{ .Values.config.logging.format }}
+      add_source: {{ .Values.config.logging.addSource }}
+      
+    metrics:
+      enabled: {{ .Values.config.metrics.enabled }}
+      port: {{ .Values.config.metrics.port }}
+      path: {{ .Values.config.metrics.path }}
+      
+    tracing:
+      enabled: {{ .Values.config.tracing.enabled }}
+      {{- if .Values.config.tracing.enabled }}
+      exporter: {{ .Values.config.tracing.exporter }}
+      endpoint: {{ .Values.config.tracing.endpoint }}
+      sampling_rate: {{ .Values.config.tracing.samplingRate }}
+      service_name: {{ .Values.config.tracing.serviceName }}
+      {{- end }}

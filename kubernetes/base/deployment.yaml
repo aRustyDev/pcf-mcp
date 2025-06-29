@@ -1,0 +1,115 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pcf-mcp
+  namespace: pcf-mcp
+  labels:
+    app.kubernetes.io/name: pcf-mcp
+    app.kubernetes.io/component: server
+    app.kubernetes.io/part-of: pcf-mcp
+    app.kubernetes.io/version: "0.9.0"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pcf-mcp
+      app.kubernetes.io/component: server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: pcf-mcp
+        app.kubernetes.io/component: server
+        app.kubernetes.io/part-of: pcf-mcp
+        app.kubernetes.io/version: "0.9.0"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: pcf-mcp
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        fsGroup: 65534
+      containers:
+      - name: pcf-mcp
+        image: pcf-mcp:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        - name: metrics
+          containerPort: 9090
+          protocol: TCP
+        env:
+        - name: PCF_MCP_PCF_URL
+          valueFrom:
+            configMapKeyRef:
+              name: pcf-mcp-config
+              key: pcf-url
+              optional: true
+        - name: PCF_MCP_PCF_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: pcf-mcp-secrets
+              key: pcf-api-key
+        - name: PCF_MCP_SERVER_AUTH_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: pcf-mcp-secrets
+              key: auth-token
+              optional: true
+        volumeMounts:
+        - name: config
+          mountPath: /etc/pcf-mcp
+          readOnly: true
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 65534
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: config
+        configMap:
+          name: pcf-mcp-config
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                  - pcf-mcp
+              topologyKey: kubernetes.io/hostname

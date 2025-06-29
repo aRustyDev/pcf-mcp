@@ -1,0 +1,27 @@
+apiVersion: v2
+name: pcf-mcp
+description: A Helm chart for PCF-MCP - Model Context Protocol server for Pentest Collaboration Framework
+type: application
+version: 0.1.0
+appVersion: "0.9.0"
+keywords:
+  - mcp
+  - pcf
+  - security
+  - pentesting
+home: https://github.com/analyst/pcf-mcp
+sources:
+  - https://github.com/analyst/pcf-mcp
+maintainers:
+  - name: PCF-MCP Team
+    email: support@example.com
+icon: https://raw.githubusercontent.com/analyst/pcf-mcp/main/docs/logo.png
+annotations:
+  artifacthub.io/changes: |
+    - kind: added
+      description: Initial Helm chart release
+  artifacthub.io/signKey: |
+    fingerprint: <fingerprint>
+    url: https://keybase.io/username
+  artifacthub.io/prerelease: "false"
+  artifacthub.io/license: MIT

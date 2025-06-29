@@ -1,0 +1,39 @@
+# Development environment values
+replicaCount: 1
+
+image:
+  pullPolicy: Always
+
+service:
+  type: NodePort
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+config:
+  server:
+    maxConcurrentTools: 5
+    authRequired: false
+    
+  pcf:
+    url: http://pcf-dev.example.com
+    insecureSkipVerify: true
+    
+  logging:
+    level: debug
+    format: text
+    addSource: true
+    
+  tracing:
+    enabled: false
+
+podDisruptionBudget:
+  enabled: false
+
+networkPolicy:
+  enabled: false
