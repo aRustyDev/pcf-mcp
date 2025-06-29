@@ -72,7 +72,7 @@ security:
     
 # Generate documentation
 docs:
-    go doc -all > docs/godoc.txt
+    ./scripts/generate-docs.sh
 
 # Run integration tests
 test-integration:
