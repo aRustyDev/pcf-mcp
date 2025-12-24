@@ -150,7 +150,7 @@ jobs:
           cache: true
 
       - name: Download binary
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: pcf-mcp-linux-amd64
           path: bin/
