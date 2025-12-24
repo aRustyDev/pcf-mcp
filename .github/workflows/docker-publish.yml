@@ -186,7 +186,7 @@ jobs:
           sarif_file: "trivy-results.sarif"
 
       - name: Run Grype vulnerability scanner
-        uses: anchore/scan-action@v3
+        uses: anchore/scan-action@v7
         with:
           image: "docker.io/${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest"
           fail-build: false
